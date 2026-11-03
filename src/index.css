@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink text-slate-100 font-display antialiased;
+    background-image:
+      radial-gradient(circle at 15% -10%, rgba(126, 224, 240, 0.12), transparent 45%),
+      radial-gradient(circle at 85% 0%, rgba(255, 143, 177, 0.1), transparent 40%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-accent/30;
+  }
+
+  /* Scrollbar discret */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cellAlt rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted/50;
+  }
+}
+
+@layer components {
+  /* Card de baza, folosit in tot site-ul */
+  .card {
+    @apply rounded-2xl border border-white/5 bg-panel/80 shadow-card backdrop-blur;
+  }
+
+  /* Buton principal */
+  .btn-primary {
+    @apply rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-ink transition
+      hover:bg-accentSoft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  /* Buton secundar */
+  .btn-ghost {
+    @apply rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium
+      text-slate-200 transition hover:border-accent/40 hover:bg-white/10 active:scale-[0.98]
+      disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  /* Celula de sudoku */
+  .cell {
+    @apply flex select-none items-center justify-center text-[clamp(1rem,3.4vw,1.6rem)]
+      font-semibold tabular-nums transition-colors duration-75;
+  }
+}
