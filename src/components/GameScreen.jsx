@@ -140,7 +140,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
   );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 pb-[env(safe-area-inset-bottom)] pt-4 sm:px-6">
+    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-2 pb-[env(safe-area-inset-bottom)] pt-4 sm:px-6">
       {/* ---------- bara de sus ---------- */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <button onClick={onExit} className="btn-sm">
@@ -152,7 +152,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
             #{puzzle.id}
             <span className={`ml-2 ${meta.color}`}>{meta.label}</span>
           </span>
-          <span className="tabular-nums">⏱ {formatTime(game.elapsed)}</span>
+          <span className="font-mono tabular-nums">⏱ {formatTime(game.elapsed)}</span>
           <span className="tabular-nums">greseli: {game.mistakes}</span>
           <span className="tabular-nums">hint: {game.hintsUsed}</span>
         </div>
@@ -160,7 +160,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
 
       <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center">
         {/* ---------- tabla ---------- */}
-        <section className="flex w-full max-w-[min(94vw,470px)] flex-col items-center gap-3">
+        <section className="flex w-full max-w-[500px] flex-col items-center gap-3">
           <Board
             values={game.values}
             givens={game.givens}

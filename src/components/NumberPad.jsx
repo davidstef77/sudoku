@@ -32,16 +32,18 @@ export default function NumberPad({
               type="button"
               onClick={() => onDigit(digit)}
               disabled={disabled}
-              className={`relative flex min-h-12 items-center justify-center rounded-xl border text-lg font-bold transition sm:min-h-14 sm:text-xl
+              className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl border font-mono transition sm:min-h-14
                 ${
                   exhausted
                     ? "border-white/5 bg-white/[0.03] text-muted/40"
-                    : "border-white/10 bg-cell text-accentSoft shadow-card hover:border-accent/50 hover:bg-cellAlt active:scale-95"
+                    : "border-white/10 bg-cell text-slate-100 shadow-card hover:border-white/30 hover:bg-cellAlt active:scale-95"
                 }
                 disabled:cursor-not-allowed`}
             >
-              {digit}
-              <span className="absolute bottom-0.5 text-[0.55rem] font-normal tabular-nums text-muted">
+              <span className="text-lg font-bold leading-none sm:text-xl">
+                {digit}
+              </span>
+              <span className="text-[0.5rem] leading-none tabular-nums text-muted">
                 {usage[digit]}/9
               </span>
             </button>

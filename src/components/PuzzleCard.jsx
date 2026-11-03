@@ -29,7 +29,7 @@ export default function PuzzleCard({ puzzle, progress, onOpen }) {
         }`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm font-bold tabular-nums text-slate-100">
+        <span className="font-mono text-sm font-bold tabular-nums text-slate-100">
           #{puzzle.id}
         </span>
         {solved && <span className="text-base leading-none text-good">✓</span>}

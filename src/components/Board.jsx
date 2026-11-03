@@ -38,11 +38,11 @@ function cellClasses(index, state) {
     : "text-accentSoft";
 
   return [
-    "relative flex aspect-square w-full select-none items-center justify-center rounded-[6px]",
+    "relative flex aspect-square w-full select-none items-center justify-center rounded-[5px]",
     "font-semibold tabular-nums transition-colors duration-100",
     bg,
     text,
-    isSelected ? "ring-2 ring-inset ring-accent/80" : "hover:bg-cellAlt",
+    isSelected ? "ring-2 ring-inset ring-white/70" : "hover:bg-cellAlt",
   ].join(" ");
 }
 
@@ -58,7 +58,7 @@ function Cell({ index, state, onSelect }) {
       aria-label={`Celula randul ${rowOf(index) + 1}, coloana ${colOf(index) + 1}`}
     >
       {value ? (
-        <span className="animate-pop text-[clamp(1rem,5.5vw,1.6rem)] leading-none">
+        <span className="animate-pop font-mono font-bold text-[clamp(1.05rem,5.8vw,1.7rem)] leading-none">
           {value}
         </span>
       ) : note ? (
@@ -81,7 +81,7 @@ function Board({ values, givens, notes, conflicts, selected, onSelect }) {
   const state = { values, givens, notes, conflicts, selected };
 
   return (
-    <div className="w-full max-w-[min(94vw,470px)] rounded-2xl border border-white/10 bg-panel/90 p-2 shadow-card sm:p-3">
+    <div className="w-full max-w-[500px] rounded-2xl border border-white/10 bg-panel/90 p-1.5 shadow-card sm:p-3">
       <div className="grid grid-cols-3 gap-1">
         {Array.from({ length: 9 }, (_, block) => {
           const blockRow = Math.floor(block / 3);

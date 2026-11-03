@@ -265,7 +265,7 @@ function Stat({ label, value, tone }) {
   return (
     <div className="card px-4 py-3">
       <p className="text-[0.65rem] uppercase tracking-wider text-muted">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold tabular-nums ${tone}`}>{value}</p>
+      <p className={`mt-0.5 font-mono text-lg font-bold tabular-nums ${tone}`}>{value}</p>
     </div>
   );
 }
