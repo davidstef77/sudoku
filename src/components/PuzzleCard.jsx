@@ -22,35 +22,29 @@ export default function PuzzleCard({ puzzle, progress, onOpen }) {
         hover:-translate-y-0.5 hover:shadow-card active:translate-y-0
         ${
           solved
-            ? "border-good/40 bg-good/[0.07] hover:border-good/60"
+            ? "border-good/40 bg-good/[0.08] hover:border-good/60"
             : started
-            ? "border-accent/30 bg-accent/[0.06] hover:border-accent/60"
-            : "border-white/10 bg-panel/70 hover:border-white/20"
+            ? "border-accent/30 bg-accent/[0.07] hover:border-accent/60"
+            : "border-white/10 bg-panel/80 hover:border-white/20"
         }`}
     >
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold tabular-nums text-slate-100">
           #{puzzle.id}
         </span>
-        <span className={`flex items-center gap-1.5 text-[0.68rem] font-semibold ${meta.color}`}>
+        {solved && <span className="text-base leading-none text-good">✓</span>}
+      </div>
+
+      <div className="flex items-center justify-between text-[0.65rem] text-muted">
+        <span className={`flex items-center gap-1.5 font-semibold ${meta.color}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
           {meta.label}
         </span>
-      </div>
-
-      <div className="flex items-center justify-between text-[0.68rem] text-muted">
-        <span>{puzzle.givens} cifre</span>
-        {solved ? (
-          <span className="font-semibold text-good">rezolvat</span>
-        ) : started ? (
-          <span className="font-semibold text-accent">{percent}%</span>
-        ) : (
-          <span>nou</span>
-        )}
+        <span className="tabular-nums">{puzzle.givens} date</span>
       </div>
 
       {/* Bara de progres */}
-      <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
         <div
           className={`h-full rounded-full transition-all duration-300 ${
             solved ? "bg-good" : started ? "bg-accent" : "bg-white/15"

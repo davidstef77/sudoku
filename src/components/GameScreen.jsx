@@ -1,6 +1,8 @@
 /**
  * Ecranul de joc: incarca progresul din AsyncStorage, afiseaza tabla
  * si salveaza automat (debounce) dupa fiecare mutare.
+ * Layout responsive: pe telefon tabla e sus, tastatura dedesubt;
+ * pe desktop sunt una langa alta.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -138,14 +140,14 @@ function Game({ puzzle, saved, onExit, onSolved }) {
   );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 py-6 sm:px-6">
+    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 pb-[env(safe-area-inset-bottom)] pt-4 sm:px-6">
       {/* ---------- bara de sus ---------- */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button onClick={onExit} className="btn-ghost px-3 py-2 text-xs">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <button onClick={onExit} className="btn-sm">
           ← Toate puzzle-urile
         </button>
 
-        <div className="flex items-center gap-4 text-xs text-muted">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
           <span className="font-semibold text-slate-100">
             #{puzzle.id}
             <span className={`ml-2 ${meta.color}`}>{meta.label}</span>
@@ -154,11 +156,11 @@ function Game({ puzzle, saved, onExit, onSolved }) {
           <span className="tabular-nums">greseli: {game.mistakes}</span>
           <span className="tabular-nums">hint: {game.hintsUsed}</span>
         </div>
-      </div>
+      </header>
 
       <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center">
         {/* ---------- tabla ---------- */}
-        <div className="flex flex-col items-center gap-3">
+        <section className="flex w-full max-w-[min(94vw,470px)] flex-col items-center gap-3">
           <Board
             values={game.values}
             givens={game.givens}
@@ -168,7 +170,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
             onSelect={game.setSelected}
           />
 
-          <div className="w-full max-w-md">
+          <div className="w-full">
             <div className="mb-1 flex justify-between text-[0.65rem] text-muted">
               <span>completat corect</span>
               <span className="tabular-nums">{filledPercent}%</span>
@@ -180,10 +182,10 @@ function Game({ puzzle, saved, onExit, onSolved }) {
               />
             </div>
           </div>
-        </div>
+        </section>
 
         {/* ---------- taste + actiuni ---------- */}
-        <div className="flex w-full max-w-md flex-col items-center gap-3">
+        <section className="flex w-full max-w-md flex-col items-center gap-3">
           <NumberPad
             values={game.values}
             noteMode={game.noteMode}
@@ -203,10 +205,10 @@ function Game({ puzzle, saved, onExit, onSolved }) {
           </button>
 
           <p className="text-center text-[0.65rem] leading-relaxed text-muted/70">
-            Tastatura: 1-9 pentru cifre, Backspace pentru stergere, sageti pentru navigare,
-            N pentru modul creion.
+            Tastatura: 1-9 pentru cifre, Backspace pentru stergere, sageti pentru
+            navigare, N pentru modul creion.
           </p>
-        </div>
+        </section>
       </div>
 
       {/* ---------- mesaj de final ---------- */}

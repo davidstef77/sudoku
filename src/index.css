@@ -12,8 +12,9 @@
   body {
     @apply bg-ink text-slate-100 font-display antialiased;
     background-image:
-      radial-gradient(circle at 15% -10%, rgba(126, 224, 240, 0.12), transparent 45%),
-      radial-gradient(circle at 85% 0%, rgba(255, 143, 177, 0.1), transparent 40%);
+      radial-gradient(circle at 15% -10%, rgba(126, 224, 240, 0.14), transparent 45%),
+      radial-gradient(circle at 85% 0%, rgba(255, 143, 177, 0.1), transparent 40%),
+      radial-gradient(circle at 50% 120%, rgba(94, 224, 160, 0.08), transparent 55%);
     background-attachment: fixed;
   }
 
@@ -45,20 +46,46 @@
 
   /* Buton principal */
   .btn-primary {
-    @apply rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-ink transition
+    @apply rounded-xl bg-accent px-4 py-3 text-sm font-bold text-ink shadow-glow transition
       hover:bg-accentSoft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   /* Buton secundar */
   .btn-ghost {
-    @apply rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium
+    @apply rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium
       text-slate-200 transition hover:border-accent/40 hover:bg-white/10 active:scale-[0.98]
       disabled:cursor-not-allowed disabled:opacity-40;
   }
 
-  /* Celula de sudoku */
-  .cell {
-    @apply flex select-none items-center justify-center text-[clamp(1rem,3.4vw,1.6rem)]
-      font-semibold tabular-nums transition-colors duration-75;
+  /* Buton mic (bare de sus, paginare) */
+  .btn-sm {
+    @apply rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold
+      text-slate-200 transition hover:border-accent/40 hover:bg-white/10 active:scale-[0.98]
+      disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  /* Filtru tip "chip" */
+  .chip {
+    @apply rounded-full px-4 py-2 text-xs font-semibold transition active:scale-[0.97]
+      disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .chip-active {
+    @apply bg-accent text-ink shadow-glow;
+  }
+  .chip-idle {
+    @apply border border-white/10 bg-white/5 text-slate-300 hover:border-accent/40 hover:text-white;
+  }
+
+  /* Titlu cu gradient */
+  .text-gradient {
+    @apply bg-gradient-to-r from-accentSoft via-accent to-warn bg-clip-text text-transparent;
+  }
+
+  /* Ascunde scrollbar-ul pentru listele orizontale */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

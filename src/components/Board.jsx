@@ -1,49 +1,49 @@
 /**
- * Tabla de Sudoku 9x9, desenata ca 9 blocuri de 3x3 (separare vizuala clara).
- * Evidentiaza celula selectata, randul/coloana/blocul, cifrele identice
- * si conflictele.
+ * Tabla de Sudoku 9x9, desenata ca 9 blocuri de 3x3.
+ * Celulele folosesc aspect-square si latime fluida, asa ca tabla
+ * se micsoreaza singura pe telefoane si tablete.
  */
 
 import { memo } from "react";
-import { colOf, rowOf } from "../lib/sudoku.js";
+import { DIGITS, colOf, rowOf } from "../lib/sudoku.js";
 
 /** Clasele unei celule, in functie de context. */
 function cellClasses(index, state) {
   const { selected, values, givens, conflicts } = state;
-
   const isSelected = selected === index;
-  const sameUnit =
+  const value = values[index];
+
+  const sameRowCol =
     selected !== null &&
     !isSelected &&
     (rowOf(selected) === rowOf(index) || colOf(selected) === colOf(index));
+
   const sameBox =
     selected !== null &&
     !isSelected &&
     Math.floor(rowOf(selected) / 3) === Math.floor(rowOf(index) / 3) &&
     Math.floor(colOf(selected) / 3) === Math.floor(colOf(index) / 3);
 
-  const sameValue =
-    selected !== null &&
-    values[selected] !== 0 &&
-    values[selected] === values[index];
+  const sameValue = selected !== null && value !== 0 && value === values[selected];
 
-  const bg = isSelected
-    ? "bg-accent/35"
-    : sameValue
-    ? "bg-accent/20"
-    : sameUnit || sameBox
-    ? "bg-white/[0.06]"
-    : "bg-cell/70";
+  let bg = "bg-cell/80";
+  if (isSelected) bg = "bg-accent/40";
+  else if (sameValue) bg = "bg-accent/25";
+  else if (sameRowCol || sameBox) bg = "bg-cellAlt/90";
 
   const text = conflicts.has(index)
     ? "text-rose"
     : givens[index]
-    ? "text-slate-100"
+    ? "text-slate-50"
     : "text-accentSoft";
 
-  return `cell h-[clamp(32px,8.6vw,50px)] w-[clamp(32px,8.6vw,50px)] ${bg} ${text} ${
-    isSelected ? "" : "hover:bg-cellAlt"
-  }`;
+  return [
+    "relative flex aspect-square w-full select-none items-center justify-center rounded-[6px]",
+    "font-semibold tabular-nums transition-colors duration-100",
+    bg,
+    text,
+    isSelected ? "ring-2 ring-inset ring-accent/80" : "hover:bg-cellAlt",
+  ].join(" ");
 }
 
 function Cell({ index, state, onSelect }) {
@@ -58,11 +58,16 @@ function Cell({ index, state, onSelect }) {
       aria-label={`Celula randul ${rowOf(index) + 1}, coloana ${colOf(index) + 1}`}
     >
       {value ? (
-        <span className="animate-pop">{value}</span>
+        <span className="animate-pop text-[clamp(1rem,5.5vw,1.6rem)] leading-none">
+          {value}
+        </span>
       ) : note ? (
-        <span className="grid h-full w-full grid-cols-3 grid-rows-3 text-[clamp(0.4rem,1.3vw,0.58rem)] leading-none text-muted">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
-            <span key={digit} className="flex items-center justify-center">
+        <span className="grid h-full w-full grid-cols-3 grid-rows-3 p-[3px]">
+          {DIGITS.map((digit) => (
+            <span
+              key={digit}
+              className="flex items-center justify-center text-[clamp(0.4rem,1.6vw,0.6rem)] leading-none text-muted"
+            >
               {note.includes(String(digit)) ? digit : ""}
             </span>
           ))}
@@ -76,7 +81,7 @@ function Board({ values, givens, notes, conflicts, selected, onSelect }) {
   const state = { values, givens, notes, conflicts, selected };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-2 shadow-card">
+    <div className="w-full max-w-[min(94vw,470px)] rounded-2xl border border-white/10 bg-panel/90 p-2 shadow-card sm:p-3">
       <div className="grid grid-cols-3 gap-1">
         {Array.from({ length: 9 }, (_, block) => {
           const blockRow = Math.floor(block / 3);
