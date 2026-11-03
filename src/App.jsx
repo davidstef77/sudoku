@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import puzzles from "./data/puzzles.json";
 import Home from "./components/Home.jsx";
 import GameScreen from "./components/GameScreen.jsx";
+import TuringTestGame from "./components/TuringTestGame.jsx";
 import {
   getLastPlayed,
   loadAllProgress,
@@ -18,6 +19,8 @@ import {
 } from "./storage/progress.js";
 
 export default function App() {
+  // "home" = lista de puzzle-uri, "sudoku" = jocul, "turing" = jocul Turing Test.
+  const [view, setView] = useState("home");
   const [activeId, setActiveId] = useState(null);
   const [progress, setProgress] = useState({});
   const [stats, setStats] = useState({ solved: 0, totalSeconds: 0, bestTimes: {} });
@@ -55,6 +58,7 @@ export default function App() {
   /** Deschide un puzzle si il retine ca „ultimul jucat". */
   const openPuzzle = useCallback(async (id) => {
     setActiveId(id);
+    setView("sudoku");
     setLast(id);
     await setLastPlayed(id);
   }, []);
@@ -62,6 +66,7 @@ export default function App() {
   /** Reincarca progresul cand ne intoarcem la lista. */
   const exitGame = useCallback(async () => {
     setActiveId(null);
+    setView("home");
     const all = await loadAllProgress();
     setProgress(all);
   }, []);
@@ -89,6 +94,7 @@ export default function App() {
     setStats({ solved: 0, totalSeconds: 0, bestTimes: {} });
     setLast(null);
     setActiveId(null);
+    setView("home");
   }, []);
 
   if (!ready) {
@@ -100,7 +106,11 @@ export default function App() {
     );
   }
 
-  if (activePuzzle) {
+  if (view === "turing") {
+    return <TuringTestGame onExit={() => setView("home")} />;
+  }
+
+  if (view === "sudoku" && activePuzzle) {
     return (
       <GameScreen
         key={activePuzzle.id}
@@ -119,6 +129,7 @@ export default function App() {
       lastPlayed={lastPlayed}
       onOpen={openPuzzle}
       onContinue={() => lastPlayed && openPuzzle(lastPlayed)}
+      onOpenTuring={() => setView("turing")}
       onReset={handleReset}
     />
   );

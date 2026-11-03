@@ -22,7 +22,16 @@ const CATEGORIES = [
 
 const DIFFICULTY_ORDER = ["easy", "medium", "hard"];
 
-export default function Home({ puzzles, progress, stats, lastPlayed, onOpen, onContinue, onReset }) {
+export default function Home({
+  puzzles,
+  progress,
+  stats,
+  lastPlayed,
+  onOpen,
+  onContinue,
+  onOpenTuring,
+  onReset,
+}) {
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -118,6 +127,27 @@ export default function Home({ puzzles, progress, stats, lastPlayed, onOpen, onC
           />
         </div>
       </header>
+
+      {/* ---------- joc bonus: Turing Test ---------- */}
+      <button
+        onClick={onOpenTuring}
+        className="group flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-panel/80 p-4 text-left transition hover:border-white/30 hover:bg-panel"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-good/40 bg-good/10 font-mono text-sm font-bold text-good">
+            TT
+          </span>
+          <div>
+            <p className="font-mono text-sm font-bold text-slate-100">
+              Turing Test pentru Roboți
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              Ghiceste codul de 4 culori in 10 incercari. Robotul raspunde vag.
+            </p>
+          </div>
+        </div>
+        <span className="btn-sm shrink-0 font-mono">Joacă →</span>
+      </button>
 
       {/* ---------- controale: categorii + cautare ---------- */}
       <div className="flex flex-col gap-3">
