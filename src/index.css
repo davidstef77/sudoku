@@ -13,15 +13,16 @@
 
   html {
     /* Fundal pe <html>, ca sa acopere toata pagina indiferent de scroll.
-       Fara background-attachment: fixed (pe telefon strica randarea). */
-    background-color: #070b14;
+       Fara background-attachment: fixed (pe telefon strica randarea).
+       Gradient vizibil de navy-indigo, nu negru-gri. */
+    background-color: #0a1024;
     background-image:
       radial-gradient(
         48rem 28rem at 50% -12rem,
-        rgba(129, 140, 248, 0.16),
+        rgba(129, 140, 248, 0.22),
         transparent 60%
       ),
-      linear-gradient(180deg, #101a30 0%, #0b1220 55%, #070b14 100%);
+      linear-gradient(180deg, #16214a 0%, #0d1530 50%, #070b14 100%);
     background-repeat: no-repeat;
   }
 
