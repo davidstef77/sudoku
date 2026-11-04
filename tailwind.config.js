@@ -10,6 +10,7 @@ export default {
         cellAlt: "#262626",
         accent: "#ffffff",
         accentSoft: "#d4d4d4",
+        highlight: "#38bdf8",
         rose: "#f87171",
         good: "#4ade80",
         warn: "#fbbf24",

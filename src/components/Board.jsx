@@ -9,7 +9,7 @@ import { DIGITS, colOf, rowOf } from "../lib/sudoku.js";
 
 /** Clasele unei celule, in functie de context. */
 function cellClasses(index, state) {
-  const { selected, values, givens, conflicts } = state;
+  const { selected, values, givens, conflicts, highlightDigit } = state;
   const isSelected = selected === index;
   const value = values[index];
 
@@ -24,11 +24,12 @@ function cellClasses(index, state) {
     Math.floor(rowOf(selected) / 3) === Math.floor(rowOf(index) / 3) &&
     Math.floor(colOf(selected) / 3) === Math.floor(colOf(index) / 3);
 
-  const sameValue = selected !== null && value !== 0 && value === values[selected];
+  // Cifra apasata (sau cifra din celula selectata) apare evidentiata peste tot.
+  const sameValue = highlightDigit !== null && value !== 0 && value === highlightDigit;
 
   let bg = "bg-cell/80";
-  if (isSelected) bg = "bg-accent/40";
-  else if (sameValue) bg = "bg-accent/25";
+  if (isSelected) bg = "bg-highlight/40";
+  else if (sameValue) bg = "bg-highlight/20";
   else if (sameRowCol || sameBox) bg = "bg-cellAlt/90";
 
   const text = conflicts.has(index)
@@ -38,11 +39,15 @@ function cellClasses(index, state) {
     : "text-accentSoft";
 
   return [
-    "relative flex aspect-square w-full select-none items-center justify-center rounded-[5px]",
+    "relative flex aspect-square w-full select-none items-center justify-center rounded-[4px]",
     "font-semibold tabular-nums transition-colors duration-100",
     bg,
     text,
-    isSelected ? "ring-2 ring-inset ring-white/70" : "hover:bg-cellAlt",
+    isSelected
+      ? "ring-2 ring-inset ring-white/80"
+      : sameValue
+      ? "ring-1 ring-inset ring-highlight/40"
+      : "hover:bg-cellAlt",
   ].join(" ");
 }
 
@@ -77,8 +82,8 @@ function Cell({ index, state, onSelect }) {
   );
 }
 
-function Board({ values, givens, notes, conflicts, selected, onSelect }) {
-  const state = { values, givens, notes, conflicts, selected };
+function Board({ values, givens, notes, conflicts, selected, highlightDigit, onSelect }) {
+  const state = { values, givens, notes, conflicts, selected, highlightDigit };
 
   return (
     <div className="w-full max-w-[500px] rounded-2xl border border-white/10 bg-panel/90 p-1.5 shadow-card sm:p-3">

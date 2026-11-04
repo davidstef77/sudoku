@@ -33,6 +33,8 @@ export function useSudoku(puzzle, saved) {
   );
   const [selected, setSelected] = useState(null);
   const [noteMode, setNoteMode] = useState(false);
+  // Cifra evidentiata pe tabla (apasata din tastatura / numpad sau din celula selectata).
+  const [highlightDigit, setHighlightDigit] = useState(null);
   const [mistakes, setMistakes] = useState(saved?.mistakes ?? 0);
   const [hintsUsed, setHintsUsed] = useState(saved?.hintsUsed ?? 0);
   const [elapsed, setElapsed] = useState(saved?.elapsed ?? 0);
@@ -61,11 +63,24 @@ export function useSudoku(puzzle, saved) {
     if (history.current.length > MAX_HISTORY) history.current.shift();
   }, []);
 
+  /** Selecteaza o celula si evidentiaza cifra din ea (daca exista). */
+  const selectCell = useCallback(
+    (index) => {
+      setSelected(index);
+      const value = values[index];
+      setHighlightDigit(value !== 0 ? value : null);
+    },
+    [values]
+  );
+
   /** Scrie o cifra in celula selectata (sau o noteaza, in modul creion). */
   const inputDigit = useCallback(
     (digit) => {
       if (selected === null || completed) return;
       if (givens[selected]) return; // cifrele initiale nu se pot schimba
+
+      // Orice cifra apasata devine cifra evidentiata pe toata tabla.
+      setHighlightDigit(digit);
 
       if (noteMode) {
         const current = notes[selected] ?? "";
@@ -112,6 +127,7 @@ export function useSudoku(puzzle, saved) {
     pushHistory(values, notes);
     setValues((prev) => prev.map((value, i) => (i === selected ? 0 : value)));
     setNotes((prev) => prev.map((value, i) => (i === selected ? "" : value)));
+    setHighlightDigit(null);
   }, [selected, completed, givens, values, notes, pushHistory]);
 
   /** Umple o celula goala cu valoarea corecta (cea selectata, daca e goala). */
@@ -130,6 +146,7 @@ export function useSudoku(puzzle, saved) {
     setNotes((prev) => prev.map((value, i) => (i === target ? "" : value)));
     setHintsUsed((count) => count + 1);
     setSelected(target);
+    setHighlightDigit(solution[target]);
   }, [completed, selected, givens, values, notes, solution, pushHistory]);
 
   /** Anuleaza ultima mutare. */
@@ -150,17 +167,21 @@ export function useSudoku(puzzle, saved) {
     setElapsed(0);
     setCompleted(false);
     setSelected(null);
+    setHighlightDigit(null);
   }, [givens]);
 
   /** Mutare cu tastatura (sageti). */
-  const moveSelection = useCallback((deltaRow, deltaCol) => {
-    setSelected((current) => {
-      if (current === null) return 0;
+  const moveSelection = useCallback(
+    (deltaRow, deltaCol) => {
+      const current = selected ?? 0;
       const row = Math.min(8, Math.max(0, Math.floor(current / 9) + deltaRow));
       const col = Math.min(8, Math.max(0, (current % 9) + deltaCol));
-      return row * 9 + col;
-    });
-  }, []);
+      const next = row * 9 + col;
+      setSelected(next);
+      setHighlightDigit(values[next] !== 0 ? values[next] : null);
+    },
+    [selected, values]
+  );
 
   return {
     givens,
@@ -169,6 +190,8 @@ export function useSudoku(puzzle, saved) {
     notes,
     selected,
     setSelected,
+    selectCell,
+    highlightDigit,
     noteMode,
     setNoteMode,
     conflicts,
