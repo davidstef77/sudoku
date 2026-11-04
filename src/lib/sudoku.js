@@ -106,7 +106,7 @@ export function formatTime(totalSeconds) {
 }
 
 export const DIFFICULTIES = {
-  easy: { label: "Usor", color: "text-good", dot: "bg-good" },
-  medium: { label: "Mediu", color: "text-warn", dot: "bg-warn" },
-  hard: { label: "Greu", color: "text-rose", dot: "bg-rose" },
+  easy: { label: "Usor", color: "text-white", dot: "bg-white" },
+  medium: { label: "Mediu", color: "text-accentSoft", dot: "bg-accentSoft" },
+  hard: { label: "Greu", color: "text-muted", dot: "bg-muted" },
 };

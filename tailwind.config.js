@@ -4,29 +4,30 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Fundal si suprafete: bleumarin inchis, nu negru pur.
-        ink: "#070b14",
-        panel: "#0e1628",
-        cell: "#16213a",
-        cellAlt: "#223050",
-        // Accent indigo: butoane, selectie, evidentiere cifre.
-        accent: "#818cf8",
-        accentDeep: "#6366f1",
-        accentStrong: "#c7d2fe",
-        // Text secundar / cifre introduse de jucator.
-        accentSoft: "#cbd5e1",
-        // Culori de stare.
-        rose: "#fb7185",
+        // Paleta ceruta: negru, albastru inchis, alb (+ rosu doar pentru greseli).
+        ink: "#000000",
+        panel: "#0a1430",
+        cell: "#0e1e4a",
+        cellAlt: "#17306e",
+        // Alb ca accent (butoane, selectie, evidentiere).
+        accent: "#ffffff",
+        accentDeep: "#dbe6ff",
+        accentStrong: "#a9bdf0",
+        accentSoft: "#c9d6f5",
+        // Doar pentru greseli / conflicte.
+        rose: "#f87171",
+        // Pastrate doar pentru jocul bonus Turing Test (Mastermind cu culori).
         good: "#34d399",
         warn: "#fbbf24",
-        muted: "#7b8aa3",
+        // Text secundar: albastru dezacturat.
+        muted: "#8fa0c9",
       },
       fontFamily: {
         display: ["Inter", "Segoe UI", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(129,140,248,0.35), 0 0 28px rgba(129,140,248,0.25)",
+        glow: "0 0 0 1px rgba(255,255,255,0.3), 0 0 24px rgba(255,255,255,0.15)",
         card: "0 12px 32px -12px rgba(0,0,0,0.7)",
       },
       keyframes: {

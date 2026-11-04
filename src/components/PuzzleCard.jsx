@@ -22,17 +22,17 @@ export default function PuzzleCard({ puzzle, progress, onOpen }) {
         hover:-translate-y-0.5 hover:shadow-card active:translate-y-0
         ${
           solved
-            ? "border-good/40 bg-good/[0.08] hover:border-good/60"
+            ? "border-white/60 bg-white/[0.08] hover:border-white/90"
             : started
-            ? "border-accent/30 bg-accent/[0.07] hover:border-accent/60"
-            : "border-white/10 bg-panel/80 hover:border-white/20"
+            ? "border-white/30 bg-white/[0.05] hover:border-white/70"
+            : "border-white/10 bg-panel/80 hover:border-white/25"
         }`}
     >
       <div className="flex items-center justify-between">
-        <span className="font-mono text-sm font-bold tabular-nums text-slate-100">
+        <span className="font-mono text-sm font-bold tabular-nums text-white">
           #{puzzle.id}
         </span>
-        {solved && <span className="text-base leading-none text-good">✓</span>}
+        {solved && <span className="text-base leading-none text-white">✓</span>}
       </div>
 
       <div className="flex items-center justify-between text-[0.65rem] text-muted">
@@ -47,7 +47,7 @@ export default function PuzzleCard({ puzzle, progress, onOpen }) {
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
         <div
           className={`h-full rounded-full transition-all duration-300 ${
-            solved ? "bg-good" : started ? "bg-accent" : "bg-white/15"
+            solved ? "bg-white" : started ? "bg-white/70" : "bg-white/15"
           }`}
           style={{ width: `${solved ? 100 : started ? percent : 0}%` }}
         />

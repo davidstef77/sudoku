@@ -148,12 +148,14 @@ function Game({ puzzle, saved, onExit, onSolved }) {
         </button>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-          <span className="font-semibold text-slate-100">
+          <span className="font-semibold text-white">
             #{puzzle.id}
             <span className={`ml-2 ${meta.color}`}>{meta.label}</span>
           </span>
           <span className="font-mono tabular-nums">⏱ {formatTime(game.elapsed)}</span>
-          <span className="tabular-nums">greseli: {game.mistakes}</span>
+          <span className={`tabular-nums ${game.mistakes > 0 ? "text-rose" : ""}`}>
+            greseli: {game.mistakes}
+          </span>
           <span className="tabular-nums">hint: {game.hintsUsed}</span>
         </div>
       </header>
@@ -218,7 +220,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm">
           <div className="card w-full max-w-sm animate-fadeUp p-6 text-center">
             <p className="text-4xl">🎉</p>
-            <h2 className="mt-3 text-xl font-bold text-slate-50">Puzzle rezolvat!</h2>
+            <h2 className="mt-3 text-xl font-bold text-white">Puzzle rezolvat!</h2>
             <p className="mt-1 text-sm text-muted">
               #{puzzle.id} · {meta.label} · {formatTime(game.elapsed)}
             </p>

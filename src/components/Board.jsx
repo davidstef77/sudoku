@@ -28,18 +28,18 @@ function cellClasses(index, state) {
   const sameValue = highlightDigit !== null && value !== 0 && value === highlightDigit;
 
   let bg = "bg-cell";
-  if (isSelected) bg = "bg-accent/45";
-  else if (sameValue) bg = "bg-accent/30";
+  if (isSelected) bg = "bg-accent";
+  else if (sameValue) bg = "bg-white/20";
   else if (sameRowCol || sameBox) bg = "bg-cellAlt";
 
   const text = conflicts.has(index)
     ? "text-rose"
     : isSelected
-    ? "text-white"
+    ? "text-ink"
     : sameValue
-    ? "text-accentStrong"
+    ? "text-white"
     : givens[index]
-    ? "text-slate-50"
+    ? "text-white"
     : "text-accentSoft";
 
   return [
@@ -50,7 +50,7 @@ function cellClasses(index, state) {
     isSelected
       ? "ring-2 ring-inset ring-white/90"
       : sameValue
-      ? "ring-1 ring-inset ring-accent/60"
+      ? "ring-2 ring-inset ring-white/90"
       : "hover:bg-cellAlt",
   ].join(" ");
 }

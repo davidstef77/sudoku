@@ -14,29 +14,29 @@
   html {
     /* Fundal pe <html>, ca sa acopere toata pagina indiferent de scroll.
        Fara background-attachment: fixed (pe telefon strica randarea).
-       Gradient vizibil de navy-indigo, nu negru-gri. */
-    background-color: #0a1024;
+       Doar negru + albastru inchis. */
+    background-color: #000000;
     background-image:
       radial-gradient(
         48rem 28rem at 50% -12rem,
-        rgba(129, 140, 248, 0.22),
-        transparent 60%
+        rgba(23, 48, 110, 0.45),
+        transparent 62%
       ),
-      linear-gradient(180deg, #16214a 0%, #0d1530 50%, #070b14 100%);
+      linear-gradient(180deg, #0a1430 0%, #050a18 55%, #000000 100%);
     background-repeat: no-repeat;
   }
 
   body {
-    @apply text-slate-100 font-display antialiased;
+    @apply text-white font-display antialiased;
   }
 
   ::selection {
-    @apply bg-accent/30;
+    @apply bg-white/25;
   }
 
   /* Focus vizibil pentru navigarea cu tastatura */
   :focus-visible {
-    outline: 2px solid rgba(129, 140, 248, 0.8);
+    outline: 2px solid rgba(255, 255, 255, 0.85);
     outline-offset: 2px;
   }
 
@@ -64,21 +64,21 @@
 
   /* Buton principal */
   .btn-primary {
-    @apply rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white shadow-glow transition
+    @apply rounded-xl bg-accent px-4 py-3 text-sm font-bold text-ink shadow-glow transition
       hover:bg-accentDeep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   /* Buton secundar */
   .btn-ghost {
     @apply rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium
-      text-slate-200 transition hover:border-white/30 hover:bg-white/10 active:scale-[0.98]
+      text-white transition hover:border-white/40 hover:bg-white/10 active:scale-[0.98]
       disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   /* Buton mic (bare de sus, paginare) */
   .btn-sm {
     @apply rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold
-      text-slate-200 transition hover:border-white/30 hover:bg-white/10 active:scale-[0.98]
+      text-white transition hover:border-white/40 hover:bg-white/10 active:scale-[0.98]
       disabled:cursor-not-allowed disabled:opacity-40;
   }
 
@@ -88,15 +88,15 @@
       disabled:cursor-not-allowed disabled:opacity-40;
   }
   .chip-active {
-    @apply bg-accent text-white shadow-glow;
+    @apply bg-accent text-ink shadow-glow;
   }
   .chip-idle {
-    @apply border border-white/10 bg-white/5 text-slate-300 hover:border-white/30 hover:text-white;
+    @apply border border-white/10 bg-white/5 text-accentSoft hover:border-white/40 hover:text-white;
   }
 
-  /* Titlu cu gradient indigo */
+  /* Titlu cu gradient alb -> albastru deschis */
   .text-gradient {
-    @apply bg-gradient-to-r from-accentStrong via-accent to-accentDeep bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-white via-accentStrong to-accentDeep bg-clip-text text-transparent;
   }
 
   /* Ascunde scrollbar-ul pentru listele orizontale */

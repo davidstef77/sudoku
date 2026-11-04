@@ -38,17 +38,21 @@ export default function NumberPad({
               className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl border font-mono transition sm:min-h-14
                 ${
                   active
-                    ? "border-accent/80 bg-accent/30 text-white shadow-glow ring-1 ring-inset ring-accent/60"
+                    ? "border-white bg-accent text-ink shadow-glow"
                     : exhausted
-                    ? "border-white/5 bg-white/[0.03] text-muted/40"
-                    : "border-white/10 bg-cell text-slate-100 shadow-card hover:border-white/30 hover:bg-cellAlt active:scale-95"
+                    ? "border-white/5 bg-white/[0.03] text-white/25"
+                    : "border-white/10 bg-cell text-white shadow-card hover:border-white/40 hover:bg-cellAlt active:scale-95"
                 }
                 disabled:cursor-not-allowed`}
             >
               <span className="text-lg font-bold leading-none sm:text-xl">
                 {digit}
               </span>
-              <span className="text-[0.5rem] leading-none tabular-nums text-muted">
+              <span
+                className={`text-[0.5rem] leading-none tabular-nums ${
+                  active ? "text-ink/60" : "text-muted"
+                }`}
+              >
                 {usage[digit]}/9
               </span>
             </button>
@@ -83,8 +87,8 @@ function ActionButton({ children, active, onClick, disabled }) {
       className={`min-h-12 rounded-xl border px-2 py-3 text-xs font-semibold transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm
         ${
           active
-            ? "border-accent/60 bg-accent/20 text-accent"
-            : "border-white/10 bg-white/5 text-slate-200 hover:border-accent/40 hover:bg-white/10"
+            ? "border-white/70 bg-white/15 text-white"
+            : "border-white/10 bg-white/5 text-white hover:border-white/40 hover:bg-white/10"
         }`}
     >
       {children}

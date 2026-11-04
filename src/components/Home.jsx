@@ -113,17 +113,17 @@ export default function Home({
 
         {/* ---------- statistici ---------- */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Rezolvate" value={`${solvedCount} / 1000`} tone="text-good" />
-          <Stat label="Începute" value={String(startedCount)} tone="text-accent" />
+          <Stat label="Rezolvate" value={`${solvedCount} / 1000`} tone="text-white" />
+          <Stat label="Începute" value={String(startedCount)} tone="text-accentSoft" />
           <Stat
             label="Timp total"
             value={formatTime(stats.totalSeconds)}
-            tone="text-slate-200"
+            tone="text-white"
           />
           <Stat
             label="Record ușor"
             value={stats.bestTimes?.easy ? formatTime(stats.bestTimes.easy) : "—"}
-            tone="text-warn"
+            tone="text-accentSoft"
           />
         </div>
       </header>
@@ -134,11 +134,11 @@ export default function Home({
         className="group flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-panel/80 p-4 text-left transition hover:border-white/30 hover:bg-panel"
       >
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-good/40 bg-good/10 font-mono text-sm font-bold text-good">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/5 font-mono text-sm font-bold text-white">
             TT
           </span>
           <div>
-            <p className="font-mono text-sm font-bold text-slate-100">
+            <p className="font-mono text-sm font-bold text-white">
               Turing Test pentru Roboți
             </p>
             <p className="mt-0.5 text-xs text-muted">
@@ -171,8 +171,8 @@ export default function Home({
           }}
           inputMode="numeric"
           placeholder="Caută după număr (ex: 42)"
-          className="w-full rounded-xl border border-white/10 bg-panel px-4 py-3 text-sm text-slate-100
-            placeholder:text-muted/70 focus:border-accent/60 focus:outline-none sm:w-72"
+          className="w-full rounded-xl border border-white/10 bg-panel px-4 py-3 text-sm text-white
+            placeholder:text-muted/70 focus:border-white/60 focus:outline-none sm:w-72"
         />
       </div>
 
@@ -232,7 +232,7 @@ function CategorySection({ difficulty, items, progress, onOpen, onShowAll }) {
   return (
     <section>
       <div className="mb-3 flex items-end justify-between gap-3">
-        <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-100">
+        <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold text-white">
           <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
           {meta.label}
           {first && (
