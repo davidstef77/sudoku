@@ -38,7 +38,7 @@ export default function NumberPad({
               className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl border font-mono transition sm:min-h-14
                 ${
                   active
-                    ? "border-highlight/70 bg-highlight/25 text-white shadow-glow ring-1 ring-inset ring-highlight/50"
+                    ? "border-accent/80 bg-accent/30 text-white shadow-glow ring-1 ring-inset ring-accent/60"
                     : exhausted
                     ? "border-white/5 bg-white/[0.03] text-muted/40"
                     : "border-white/10 bg-cell text-slate-100 shadow-card hover:border-white/30 hover:bg-cellAlt active:scale-95"

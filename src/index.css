@@ -8,26 +8,34 @@
   html,
   body,
   #root {
-    height: 100%;
+    min-height: 100%;
+  }
+
+  html {
+    /* Fundal pe <html>, ca sa acopere toata pagina indiferent de scroll.
+       Fara background-attachment: fixed (pe telefon strica randarea). */
+    background-color: #070b14;
+    background-image:
+      radial-gradient(
+        48rem 28rem at 50% -12rem,
+        rgba(129, 140, 248, 0.16),
+        transparent 60%
+      ),
+      linear-gradient(180deg, #101a30 0%, #0b1220 55%, #070b14 100%);
+    background-repeat: no-repeat;
   }
 
   body {
-    @apply bg-ink text-slate-100 font-display antialiased;
-    background-image: radial-gradient(
-      circle at 50% -20%,
-      rgba(255, 255, 255, 0.05),
-      transparent 55%
-    );
-    background-attachment: fixed;
+    @apply text-slate-100 font-display antialiased;
   }
 
   ::selection {
-    @apply bg-white/20;
+    @apply bg-accent/30;
   }
 
   /* Focus vizibil pentru navigarea cu tastatura */
   :focus-visible {
-    outline: 2px solid rgba(56, 189, 248, 0.7);
+    outline: 2px solid rgba(129, 140, 248, 0.8);
     outline-offset: 2px;
   }
 
@@ -55,8 +63,8 @@
 
   /* Buton principal */
   .btn-primary {
-    @apply rounded-xl bg-accent px-4 py-3 text-sm font-bold text-ink shadow-glow transition
-      hover:bg-slate-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+    @apply rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white shadow-glow transition
+      hover:bg-accentDeep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   /* Buton secundar */
@@ -79,15 +87,15 @@
       disabled:cursor-not-allowed disabled:opacity-40;
   }
   .chip-active {
-    @apply bg-accent text-ink shadow-glow;
+    @apply bg-accent text-white shadow-glow;
   }
   .chip-idle {
     @apply border border-white/10 bg-white/5 text-slate-300 hover:border-white/30 hover:text-white;
   }
 
-  /* Titlu cu gradient simplu (alb -> gri) */
+  /* Titlu cu gradient indigo */
   .text-gradient {
-    @apply bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-accentStrong via-accent to-accentDeep bg-clip-text text-transparent;
   }
 
   /* Ascunde scrollbar-ul pentru listele orizontale */

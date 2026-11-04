@@ -4,25 +4,30 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#000000",
-        panel: "#0f0f0f",
-        cell: "#1a1a1a",
-        cellAlt: "#262626",
-        accent: "#ffffff",
-        accentSoft: "#d4d4d4",
-        highlight: "#38bdf8",
-        rose: "#f87171",
-        good: "#4ade80",
+        // Fundal si suprafete: bleumarin inchis, nu negru pur.
+        ink: "#070b14",
+        panel: "#0e1628",
+        cell: "#16213a",
+        cellAlt: "#223050",
+        // Accent indigo: butoane, selectie, evidentiere cifre.
+        accent: "#818cf8",
+        accentDeep: "#6366f1",
+        accentStrong: "#c7d2fe",
+        // Text secundar / cifre introduse de jucator.
+        accentSoft: "#cbd5e1",
+        // Culori de stare.
+        rose: "#fb7185",
+        good: "#34d399",
         warn: "#fbbf24",
-        muted: "#737373",
+        muted: "#7b8aa3",
       },
       fontFamily: {
         display: ["Inter", "Segoe UI", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(255,255,255,0.25), 0 0 24px rgba(255,255,255,0.12)",
-        card: "0 10px 30px -12px rgba(0,0,0,0.8)",
+        glow: "0 0 0 1px rgba(129,140,248,0.35), 0 0 28px rgba(129,140,248,0.25)",
+        card: "0 12px 32px -12px rgba(0,0,0,0.7)",
       },
       keyframes: {
         pop: {

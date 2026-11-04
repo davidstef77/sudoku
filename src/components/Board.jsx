@@ -27,13 +27,17 @@ function cellClasses(index, state) {
   // Cifra apasata (sau cifra din celula selectata) apare evidentiata peste tot.
   const sameValue = highlightDigit !== null && value !== 0 && value === highlightDigit;
 
-  let bg = "bg-cell/80";
-  if (isSelected) bg = "bg-highlight/40";
-  else if (sameValue) bg = "bg-highlight/20";
-  else if (sameRowCol || sameBox) bg = "bg-cellAlt/90";
+  let bg = "bg-cell";
+  if (isSelected) bg = "bg-accent/45";
+  else if (sameValue) bg = "bg-accent/30";
+  else if (sameRowCol || sameBox) bg = "bg-cellAlt";
 
   const text = conflicts.has(index)
     ? "text-rose"
+    : isSelected
+    ? "text-white"
+    : sameValue
+    ? "text-accentStrong"
     : givens[index]
     ? "text-slate-50"
     : "text-accentSoft";
@@ -44,9 +48,9 @@ function cellClasses(index, state) {
     bg,
     text,
     isSelected
-      ? "ring-2 ring-inset ring-white/80"
+      ? "ring-2 ring-inset ring-white/90"
       : sameValue
-      ? "ring-1 ring-inset ring-highlight/40"
+      ? "ring-1 ring-inset ring-accent/60"
       : "hover:bg-cellAlt",
   ].join(" ");
 }
@@ -86,7 +90,7 @@ function Board({ values, givens, notes, conflicts, selected, highlightDigit, onS
   const state = { values, givens, notes, conflicts, selected, highlightDigit };
 
   return (
-    <div className="w-full max-w-[500px] rounded-2xl border border-white/10 bg-panel/90 p-1.5 shadow-card sm:p-3">
+    <div className="w-full max-w-[500px] rounded-2xl border border-white/10 bg-panel/80 p-1.5 shadow-card backdrop-blur-sm sm:p-3">
       <div className="grid grid-cols-3 gap-1">
         {Array.from({ length: 9 }, (_, block) => {
           const blockRow = Math.floor(block / 3);
