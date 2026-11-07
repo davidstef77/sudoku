@@ -1,10 +1,13 @@
 /**
  * Motorul jocului: stare, mutari, note (creion), undo, hint-uri si timer.
  *
- * Logica respecta regulile Sudoku:
+ * Logica respecta regulile Sudoku si cerintele de validare stricta:
  *   - cifrele initiale (indicii) sunt fixe si nu pot fi modificate;
- *   - o cifra nu poate fi pusa intr-o celula daca apare deja pe acelasi
- *     rand, coloana sau bloc 3x3 (mutarea este refuzata);
+ *   - o cifra introdusa este validata instantaneu fata de solutia ascunsa:
+ *     daca nu corespunde solutiei sau incalca regulile de rand / coloana /
+ *     bloc 3x3, cifra NU este scrisa, celula ramane goala si se incrementeaza
+ *     contorul de greseli;
+ *   - la exact 5 greseli jocul se reseteaza automat (puzzle-ul reincepe de la zero);
  *   - puzzle-ul este considerat rezolvat doar cand toate cele 81 de celule
  *     sunt completate corect, fara conflicte si conform solutiei.
  *
@@ -14,7 +17,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CELLS,
-  blockedDigitsFor,
   findConflicts,
   isSolved,
   isValidPlacement,
@@ -22,6 +24,7 @@ import {
 } from "../lib/sudoku.js";
 
 const MAX_HISTORY = 200;
+const MAX_MISTAKES = 5;
 
 /** Notele se tin ca string-uri ("135") ca sa fie usor de salvat. */
 const emptyNotes = () => Array.from({ length: CELLS }, () => "");
@@ -29,10 +32,11 @@ const emptyNotes = () => Array.from({ length: CELLS }, () => "");
 /**
  * Construieste tabla de start dintr-un progres salvat, respectand regulile:
  *   - celulele cu indicii initiale raman mereu valorile din puzzle;
- *   - din valorile salvate se pastreaza doar cele care nu se repeta pe
- *     rand / coloana / bloc (un progres vechi sau corupt nu poate strica tabla).
+ *   - din valorile salvate se pastreaza doar cele corecte (egale cu solutia)
+ *     si care nu se repeta pe rand / coloana / bloc; un progres vechi sau
+ *     corupt nu poate strica tabla.
  */
-function sanitizeValues(savedValues, givens) {
+function sanitizeValues(savedValues, givens, solution) {
   const clean = [...givens];
 
   if (!Array.isArray(savedValues) || savedValues.length !== CELLS) {
@@ -47,6 +51,7 @@ function sanitizeValues(savedValues, givens) {
       Number.isInteger(value) &&
       value >= 1 &&
       value <= 9 &&
+      value === solution[index] &&
       isValidPlacement(clean, index, value)
     ) {
       clean[index] = value;
@@ -66,14 +71,14 @@ export function useSudoku(puzzle, saved) {
 
   // Valorile pornesc din progresul salvat (igienizat) sau din cifrele initiale.
   const [values, setValues] = useState(() =>
-    sanitizeValues(saved?.values, givens)
+    sanitizeValues(saved?.values, givens, solution)
   );
   const [notes, setNotes] = useState(() =>
     saved?.notes?.length === CELLS ? saved.notes : emptyNotes()
   );
   const [selected, setSelected] = useState(null);
   const [noteMode, setNoteMode] = useState(false);
-  // Cifra evidentiata pe tabla (apasata din tastatura / numpad sau din celula selectata).
+  // Cifra evidentiata pe tastatura (apasata din tastatura / numpad sau din celula selectata).
   const [highlightDigit, setHighlightDigit] = useState(null);
   const [mistakes, setMistakes] = useState(saved?.mistakes ?? 0);
   const [hintsUsed, setHintsUsed] = useState(saved?.hintsUsed ?? 0);
@@ -90,13 +95,6 @@ export function useSudoku(puzzle, saved) {
   }, [completed]);
 
   const conflicts = useMemo(() => findConflicts(values), [values]);
-
-  // Cifrele interzise pentru celula selectata (apar deja pe rand/coloana/bloc).
-  // In modul creion orice cifra poate fi notata, deci lista ramane goala.
-  const blockedDigits = useMemo(() => {
-    if (selected === null || noteMode) return new Set();
-    return blockedDigitsFor(values, selected);
-  }, [values, selected, noteMode]);
 
   // Detectam terminarea jocului.
   useEffect(() => {
@@ -126,7 +124,7 @@ export function useSudoku(puzzle, saved) {
       if (selected === null || completed) return;
       if (givens[selected]) return; // cifrele initiale nu se pot schimba
 
-      // Orice cifra apasata devine cifra evidentiata pe toata tabla.
+      // Orice cifra apasata devine cifra evidentiata pe tastatura.
       setHighlightDigit(digit);
 
       if (noteMode) {
@@ -141,36 +139,39 @@ export function useSudoku(puzzle, saved) {
         return;
       }
 
-      // Daca aceeasi cifra e deja acolo, o stergem (toggle).
+      // Daca aceeasi cifra e deja acolo, o stergem (toggle) — fara penalizare.
       const nextValue = values[selected] === digit ? 0 : digit;
+      if (nextValue === 0) {
+        pushHistory(values, notes);
+        setValues((prev) => prev.map((value, i) => (i === selected ? 0 : value)));
+        return;
+      }
 
-      // Regula fundamentala: nu plasam o cifra care se repeta pe
-      // acelasi rand, coloana sau bloc. Mutarea este pur si simplu refuzata.
-      if (nextValue !== 0 && !isValidPlacement(values, selected, digit)) {
+      // Validare stricta (hard validation) fata de solutia ascunsa:
+      // o cifra gresita — fie ca nu corespunde solutiei, fie ca incalca
+      // regulile de rand / coloana / bloc — NU este scrisa in celula.
+      const violatesRules = !isValidPlacement(values, selected, digit);
+      const wrongForSolution = digit !== solution[selected];
+
+      if (violatesRules || wrongForSolution) {
+        setMistakes((count) => count + 1);
         return;
       }
 
       pushHistory(values, notes);
-      setValues((prev) => prev.map((value, i) => (i === selected ? nextValue : value)));
+      setValues((prev) => prev.map((value, i) => (i === selected ? digit : value)));
 
       // Notele celulelor vecine se curata cand punem o cifra corecta.
-      if (nextValue && nextValue === solution[selected]) {
-        setNotes((prev) => {
-          const copy = [...prev];
-          for (let i = 0; i < CELLS; i++) {
-            if (copy[i].includes(String(nextValue))) {
-              copy[i] = copy[i].replace(String(nextValue), "");
-            }
+      setNotes((prev) => {
+        const copy = [...prev];
+        for (let i = 0; i < CELLS; i++) {
+          if (copy[i].includes(String(digit))) {
+            copy[i] = copy[i].replace(String(digit), "");
           }
-          copy[selected] = "";
-          return copy;
-        });
-      }
-
-      // Greselile se numara doar pentru cifre legale, dar diferite de solutie.
-      if (nextValue && nextValue !== solution[selected]) {
-        setMistakes((count) => count + 1);
-      }
+        }
+        copy[selected] = "";
+        return copy;
+      });
     },
     [selected, completed, givens, noteMode, notes, values, solution, pushHistory]
   );
@@ -224,6 +225,13 @@ export function useSudoku(puzzle, saved) {
     setHighlightDigit(null);
   }, [givens]);
 
+  // La exact 5 greseli jocul se reia automat de la zero.
+  useEffect(() => {
+    if (mistakes >= MAX_MISTAKES) {
+      restart();
+    }
+  }, [mistakes, restart]);
+
   /** Mutare cu tastatura (sageti). */
   const moveSelection = useCallback(
     (deltaRow, deltaCol) => {
@@ -249,7 +257,6 @@ export function useSudoku(puzzle, saved) {
     noteMode,
     setNoteMode,
     conflicts,
-    blockedDigits,
     mistakes,
     hintsUsed,
     elapsed,
