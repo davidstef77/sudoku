@@ -1,13 +1,23 @@
 /**
  * Motorul jocului: stare, mutari, note (creion), undo, hint-uri si timer.
+ *
+ * Logica respecta regulile Sudoku:
+ *   - cifrele initiale (indicii) sunt fixe si nu pot fi modificate;
+ *   - o cifra nu poate fi pusa intr-o celula daca apare deja pe acelasi
+ *     rand, coloana sau bloc 3x3 (mutarea este refuzata);
+ *   - puzzle-ul este considerat rezolvat doar cand toate cele 81 de celule
+ *     sunt completate corect, fara conflicte si conform solutiei.
+ *
  * Persistarea in AsyncStorage se face din GameScreen cu ajutorul acestui hook.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CELLS,
+  blockedDigitsFor,
   findConflicts,
   isSolved,
+  isValidPlacement,
   parseBoard,
 } from "../lib/sudoku.js";
 
@@ -17,6 +27,36 @@ const MAX_HISTORY = 200;
 const emptyNotes = () => Array.from({ length: CELLS }, () => "");
 
 /**
+ * Construieste tabla de start dintr-un progres salvat, respectand regulile:
+ *   - celulele cu indicii initiale raman mereu valorile din puzzle;
+ *   - din valorile salvate se pastreaza doar cele care nu se repeta pe
+ *     rand / coloana / bloc (un progres vechi sau corupt nu poate strica tabla).
+ */
+function sanitizeValues(savedValues, givens) {
+  const clean = [...givens];
+
+  if (!Array.isArray(savedValues) || savedValues.length !== CELLS) {
+    return clean;
+  }
+
+  for (let index = 0; index < CELLS; index++) {
+    if (givens[index]) continue; // indiciile sunt fixe
+
+    const value = savedValues[index];
+    if (
+      Number.isInteger(value) &&
+      value >= 1 &&
+      value <= 9 &&
+      isValidPlacement(clean, index, value)
+    ) {
+      clean[index] = value;
+    }
+  }
+
+  return clean;
+}
+
+/**
  * @param {object} puzzle  intrarea din puzzles.json
  * @param {object|null} saved  progresul salvat anterior
  */
@@ -24,9 +64,9 @@ export function useSudoku(puzzle, saved) {
   const givens = useMemo(() => parseBoard(puzzle.puzzle), [puzzle.puzzle]);
   const solution = useMemo(() => parseBoard(puzzle.solution), [puzzle.solution]);
 
-  // Valorile pornesc din progresul salvat sau din cifrele initiale.
+  // Valorile pornesc din progresul salvat (igienizat) sau din cifrele initiale.
   const [values, setValues] = useState(() =>
-    saved?.values?.length === CELLS ? saved.values : givens
+    sanitizeValues(saved?.values, givens)
   );
   const [notes, setNotes] = useState(() =>
     saved?.notes?.length === CELLS ? saved.notes : emptyNotes()
@@ -50,6 +90,13 @@ export function useSudoku(puzzle, saved) {
   }, [completed]);
 
   const conflicts = useMemo(() => findConflicts(values), [values]);
+
+  // Cifrele interzise pentru celula selectata (apar deja pe rand/coloana/bloc).
+  // In modul creion orice cifra poate fi notata, deci lista ramane goala.
+  const blockedDigits = useMemo(() => {
+    if (selected === null || noteMode) return new Set();
+    return blockedDigitsFor(values, selected);
+  }, [values, selected, noteMode]);
 
   // Detectam terminarea jocului.
   useEffect(() => {
@@ -94,10 +141,16 @@ export function useSudoku(puzzle, saved) {
         return;
       }
 
-      pushHistory(values, notes);
-
       // Daca aceeasi cifra e deja acolo, o stergem (toggle).
       const nextValue = values[selected] === digit ? 0 : digit;
+
+      // Regula fundamentala: nu plasam o cifra care se repeta pe
+      // acelasi rand, coloana sau bloc. Mutarea este pur si simplu refuzata.
+      if (nextValue !== 0 && !isValidPlacement(values, selected, digit)) {
+        return;
+      }
+
+      pushHistory(values, notes);
       setValues((prev) => prev.map((value, i) => (i === selected ? nextValue : value)));
 
       // Notele celulelor vecine se curata cand punem o cifra corecta.
@@ -114,6 +167,7 @@ export function useSudoku(puzzle, saved) {
         });
       }
 
+      // Greselile se numara doar pentru cifre legale, dar diferite de solutie.
       if (nextValue && nextValue !== solution[selected]) {
         setMistakes((count) => count + 1);
       }
@@ -195,6 +249,7 @@ export function useSudoku(puzzle, saved) {
     noteMode,
     setNoteMode,
     conflicts,
+    blockedDigits,
     mistakes,
     hintsUsed,
     elapsed,

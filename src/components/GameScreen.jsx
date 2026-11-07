@@ -83,7 +83,12 @@ function Game({ puzzle, saved, onExit, onSolved }) {
   // La rezolvare: salvam imediat si abia apoi anuntam parintele (statistici).
   // Asteptam scrierea ca lista de puzzle-uri sa vada progresul actualizat.
   useEffect(() => {
-    if (!game.completed || wasCompleted.current) return undefined;
+    if (!game.completed) {
+      // Dupa un restart, puzzle-ul poate fi rezolvat din nou.
+      wasCompleted.current = false;
+      return undefined;
+    }
+    if (wasCompleted.current) return undefined;
     wasCompleted.current = true;
 
     let active = true;
@@ -192,6 +197,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
           <NumberPad
             values={game.values}
             highlightDigit={game.highlightDigit}
+            blockedDigits={game.blockedDigits}
             noteMode={game.noteMode}
             onToggleNotes={() => game.setNoteMode((value) => !value)}
             onDigit={game.inputDigit}
