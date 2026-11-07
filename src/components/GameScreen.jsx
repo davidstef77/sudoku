@@ -144,7 +144,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
       {/* ---------- bara de sus ---------- */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <button onClick={onExit} className="btn-sm">
-          ← Toate puzzle-urile
+          ← Înapoi la nivel
         </button>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
@@ -233,7 +233,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
                 Din nou
               </button>
               <button onClick={onExit} className="btn-primary flex-1 text-xs">
-                Lista puzzle-urilor
+                Lista nivelului
               </button>
             </div>
           </div>

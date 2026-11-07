@@ -6,7 +6,9 @@
  * dar in spate foloseste window.localStorage si returneaza mereu Promise-uri.
  */
 
-const PREFIX = "sudoku1000:";
+// v2: puzzle-urile au fost regenerate pe 6 niveluri, asa ca progresul vechi
+// (care avea alte puzzle-uri pe aceleasi id-uri) nu mai este valabil.
+const PREFIX = "sudoku1000:v2:";
 
 /** Cheile salvate de noi (nu atingem alte date din localStorage). */
 function isOurs(key) {

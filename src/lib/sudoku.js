@@ -105,8 +105,21 @@ export function formatTime(totalSeconds) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+/** Nivelurile, de la cel mai usor la cel mai greu. */
+export const DIFFICULTY_ORDER = [
+  "easy",
+  "medium",
+  "hard",
+  "expert",
+  "master",
+  "extreme",
+];
+
 export const DIFFICULTIES = {
-  easy: { label: "Usor", color: "text-white", dot: "bg-white" },
-  medium: { label: "Mediu", color: "text-accentSoft", dot: "bg-accentSoft" },
-  hard: { label: "Greu", color: "text-muted", dot: "bg-muted" },
+  easy: { label: "Ușor", color: "text-white", dot: "bg-white", givens: 40 },
+  medium: { label: "Mediu", color: "text-accentSoft", dot: "bg-accentSoft", givens: 33 },
+  hard: { label: "Greu", color: "text-muted", dot: "bg-muted", givens: 28 },
+  expert: { label: "Expert", color: "text-good", dot: "bg-good", givens: 25 },
+  master: { label: "Maestru", color: "text-warn", dot: "bg-warn", givens: 23 },
+  extreme: { label: "Extrem", color: "text-rose", dot: "bg-rose", givens: 21 },
 };

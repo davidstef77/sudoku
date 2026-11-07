@@ -12,6 +12,8 @@
   }
 
   html {
+    color-scheme: dark;
+
     /* Fundal pe <html>, ca sa acopere toata pagina indiferent de scroll.
        Fara background-attachment: fixed (pe telefon strica randarea).
        Doar negru + albastru inchis. */

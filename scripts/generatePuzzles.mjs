@@ -1,6 +1,11 @@
 /**
  * Generator de puzzle-uri Sudoku cu solutie unica.
- * Scrie src/data/puzzles.json cu 1000 de puzzle-uri (easy / medium / hard).
+ * Scrie src/data/puzzles.json cu 1000 de puzzle-uri, pe sase niveluri de
+ * dificultate ordonate crescator: easy -> medium -> hard -> expert -> master -> extreme.
+ *
+ * Dificultatea e data de numarul de cifre initiale (mai putine = mai greu).
+ * Nivelurile de final (master / extreme) folosesc mai multe treceri de "sapare"
+ * si reincearca cu grile rezolvate noi pana cand se atinge tinta.
  *
  * Rulare: npm run generate
  */
@@ -12,12 +17,18 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TOTAL = 1000;
 
-// Numarul de cifre afisate pentru fiecare nivel de dificultate.
-const LEVELS = {
-  easy: { givens: 40, count: 400 },
-  medium: { givens: 33, count: 350 },
-  hard: { givens: 28, count: 250 },
-};
+/**
+ * Nivelurile, ordonate crescator dupa dificultate.
+ * count = numarul de puzzle-uri generate pentru nivelul respectiv.
+ */
+const LEVELS = [
+  { difficulty: "easy", givens: 40, count: 300 },
+  { difficulty: "medium", givens: 33, count: 240 },
+  { difficulty: "hard", givens: 28, count: 180 },
+  { difficulty: "expert", givens: 25, count: 130 },
+  { difficulty: "master", givens: 23, count: 100 },
+  { difficulty: "extreme", givens: 21, count: 50 },
+];
 
 const ALL = 0b1111111110; // bitii 1..9
 
@@ -34,7 +45,7 @@ function shuffle(list) {
 const bit = (v) => 1 << v;
 
 function posToBox(r, c) {
-  return (Math.floor(r / 3) * 3) + Math.floor(c / 3);
+  return Math.floor(r / 3) * 3 + Math.floor(c / 3);
 }
 
 // ---------- solver cu bitmask-uri ----------
@@ -133,28 +144,78 @@ function generateSolved() {
 }
 
 /**
- * Sapa celule din solutia completa pana raman `target` cifre,
- * pastrand unicitatea solutiei.
+ * Sapa celule din solutia completa pana cand raman cel mult `target` cifre,
+ * pastrand unicitatea solutiei. Repeta cu ordini aleatorii diferite (mai multe
+ * treceri), pentru ca la nivelurile grele o singura trecere se blocheaza
+ * deasupra tintei.
  */
-function digHoles(solution, target) {
+function digToTarget(solution, target, maxPasses = 120) {
   const puzzle = [...solution];
-  const order = shuffle([...Array(81).keys()]);
-  let givens = 81;
+  let passes = 0;
 
-  for (const index of order) {
-    if (givens <= target) break;
-    const backup = puzzle[index];
-    puzzle[index] = 0;
+  while (puzzle.filter(Boolean).length > target && passes < maxPasses) {
+    passes++;
+    const order = shuffle([...Array(81).keys()]);
+    let removed = 0;
 
-    const { solutions } = solve([...puzzle], 2);
-    if (solutions !== 1) {
-      puzzle[index] = backup; // reintroducem cifra daca solutia nu mai e unica
-    } else {
-      givens--;
+    for (const index of order) {
+      if (puzzle.filter(Boolean).length <= target) break;
+      if (!puzzle[index]) continue;
+
+      const backup = puzzle[index];
+      puzzle[index] = 0;
+
+      const { solutions } = solve([...puzzle], 2);
+      if (solutions !== 1) {
+        puzzle[index] = backup; // reintroducem cifra daca solutia nu mai e unica
+      } else {
+        removed++;
+      }
     }
+
+    if (removed === 0) break;
   }
 
   return puzzle;
+}
+
+/** Daca saparea a mers sub tinta, completam la loc pana la exact `target` cifre. */
+function padToTarget(solution, puzzle, target) {
+  const result = [...puzzle];
+  const empty = [];
+  for (let i = 0; i < 81; i++) if (!result[i]) empty.push(i);
+  shuffle(empty);
+
+  let givens = result.filter(Boolean).length;
+  for (const index of empty) {
+    if (givens >= target) break;
+    result[index] = solution[index];
+    givens++;
+  }
+  return result;
+}
+
+/**
+ * Genereaza un puzzle cu cel mult `target` cifre initiale, reincercand cu grile
+ * rezolvate noi daca e nevoie. La final puzzle-ul are exact `target` cifre date.
+ */
+function makePuzzle({ difficulty, givens: target }) {
+  // Nivelurile cu putine cifre au nevoie de mai multe reincercari.
+  const maxAttempts = target <= 22 ? 20000 : target <= 24 ? 8000 : 3000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const solution = generateSolved();
+    const dug = digToTarget(solution, target, 120);
+
+    if (dug.filter(Boolean).length <= target) {
+      const puzzle = padToTarget(solution, dug, target);
+      return { solution, puzzle };
+    }
+  }
+
+  throw new Error(
+    `Nu am reusit sa generez ${difficulty} cu ${target} cifre date (${maxAttempts} incercari).`
+  );
 }
 
 // ---------- generare ----------
@@ -162,11 +223,12 @@ function digHoles(solution, target) {
 const puzzles = [];
 let id = 1;
 
-for (const [difficulty, { givens, count }] of Object.entries(LEVELS)) {
+for (const level of LEVELS) {
+  const { difficulty, givens, count } = level;
   let lastLog = Date.now();
+
   for (let i = 0; i < count; i++) {
-    const solution = generateSolved();
-    const puzzle = digHoles(solution, givens);
+    const { solution, puzzle } = makePuzzle(level);
 
     puzzles.push({
       id,
@@ -183,8 +245,22 @@ for (const [difficulty, { givens, count }] of Object.entries(LEVELS)) {
       lastLog = Date.now();
     }
   }
-  console.log(`OK ${difficulty}: ${count} puzzle-uri`);
+  console.log(`OK ${difficulty}: ${count} puzzle-uri (${givens} cifre initiale)`);
 }
+
+// ---------- verificare finala ----------
+
+console.log("\nVerific solutiile...");
+for (const entry of puzzles) {
+  const board = [...entry.puzzle].map(Number);
+  const { solutions, solution } = solve(board, 2);
+  if (solutions !== 1 || solution.join("") !== entry.solution) {
+    throw new Error(`Puzzle-ul #${entry.id} nu are solutie unica sau solutia nu corespunde!`);
+  }
+}
+console.log(`Toate cele ${puzzles.length} puzzle-uri au solutie unica.`);
+
+// ---------- scriere ----------
 
 const outPath = resolve(__dirname, "../src/data/puzzles.json");
 mkdirSync(dirname(outPath), { recursive: true });
