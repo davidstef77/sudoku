@@ -2,14 +2,15 @@
  * Tastatura numerica + butoane de actiune (notite, sterge, undo, hint).
  * Butoanele au inaltime minima mare, ca sa poata fi atinse usor pe telefon.
  *
- * Fara niciun ajutor vizual: nu mai afisam cate cifre sunt deja pe tabla
- * si nu mai marcam cifrele care ar incalca regulile de rand / coloana / bloc.
- * Jucatorul trebuie sa deduca singur pozitiile corecte.
+ * Sub fiecare cifra este afisat un contor de utilizare (ex: "4/9"):
+ * de cate ori apare cifra respectiva pe tabla (toate valorile de pe tabla
+ * sunt corecte, datorita validarii stricte).
  */
 
 import { DIGITS } from "../lib/sudoku.js";
 
 export default function NumberPad({
+  values,
   highlightDigit,
   noteMode,
   onToggleNotes,
@@ -19,10 +20,17 @@ export default function NumberPad({
   onHint,
   disabled,
 }) {
+  // Cate cifre de fiecare fel sunt deja pe tabla.
+  const usage = DIGITS.reduce((acc, digit) => {
+    acc[digit] = values.filter((value) => value === digit).length;
+    return acc;
+  }, {});
+
   return (
     <div className="w-full max-w-md space-y-3">
       <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-9 sm:gap-1.5">
         {DIGITS.map((digit) => {
+          const exhausted = usage[digit] >= 9;
           const active = digit === highlightDigit;
           return (
             <button
@@ -31,15 +39,26 @@ export default function NumberPad({
               onClick={() => onDigit(digit)}
               disabled={disabled}
               aria-pressed={active}
-              className={`flex min-h-12 items-center justify-center rounded-xl border font-mono text-lg font-bold leading-none transition sm:min-h-14 sm:text-xl
+              className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl border font-mono transition sm:min-h-14
                 ${
                   active
                     ? "border-white bg-accent text-ink shadow-glow"
+                    : exhausted
+                    ? "border-white/5 bg-white/[0.03] text-white/25"
                     : "border-white/10 bg-cell text-white shadow-card hover:border-white/40 hover:bg-cellAlt active:scale-95"
                 }
                 disabled:cursor-not-allowed`}
             >
-              {digit}
+              <span className="text-lg font-bold leading-none sm:text-xl">
+                {digit}
+              </span>
+              <span
+                className={`text-[0.5rem] leading-none tabular-nums ${
+                  active ? "text-ink/60" : "text-muted"
+                }`}
+              >
+                {usage[digit]}/9
+              </span>
             </button>
           );
         })}

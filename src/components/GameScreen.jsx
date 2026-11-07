@@ -174,6 +174,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
             notes={game.notes}
             conflicts={game.conflicts}
             selected={game.selected}
+            highlightDigit={game.highlightDigit}
             onSelect={game.selectCell}
           />
 
@@ -194,6 +195,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
         {/* ---------- taste + actiuni ---------- */}
         <section className="flex w-full max-w-md flex-col items-center gap-3">
           <NumberPad
+            values={game.values}
             highlightDigit={game.highlightDigit}
             noteMode={game.noteMode}
             onToggleNotes={() => game.setNoteMode((value) => !value)}

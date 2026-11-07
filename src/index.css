@@ -16,15 +16,15 @@
 
     /* Fundal pe <html>, ca sa acopere toata pagina indiferent de scroll.
        Fara background-attachment: fixed (pe telefon strica randarea).
-       Doar negru + albastru inchis. */
+       Doar negru + gri inchis, cu o usoara lumina neutra sus. */
     background-color: #000000;
     background-image:
       radial-gradient(
         48rem 28rem at 50% -12rem,
-        rgba(23, 48, 110, 0.45),
+        rgba(255, 255, 255, 0.08),
         transparent 62%
       ),
-      linear-gradient(180deg, #0a1430 0%, #050a18 55%, #000000 100%);
+      linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 55%, #000000 100%);
     background-repeat: no-repeat;
   }
 

@@ -9,8 +9,9 @@ import { DIGITS, colOf, rowOf } from "../lib/sudoku.js";
 
 /** Clasele unei celule, in functie de context. */
 function cellClasses(index, state) {
-  const { selected, givens, conflicts } = state;
+  const { selected, values, givens, conflicts, highlightDigit } = state;
   const isSelected = selected === index;
+  const value = values[index];
 
   const sameRowCol =
     selected !== null &&
@@ -23,14 +24,20 @@ function cellClasses(index, state) {
     Math.floor(rowOf(selected) / 3) === Math.floor(rowOf(index) / 3) &&
     Math.floor(colOf(selected) / 3) === Math.floor(colOf(index) / 3);
 
+  // Cifra apasata (sau cifra din celula selectata) este evidentiata pe toata tabla.
+  const sameValue = highlightDigit !== null && value !== 0 && value === highlightDigit;
+
   let bg = "bg-cell";
   if (isSelected) bg = "bg-accent";
+  else if (sameValue) bg = "bg-white/20";
   else if (sameRowCol || sameBox) bg = "bg-cellAlt";
 
   const text = conflicts.has(index)
     ? "text-rose"
     : isSelected
     ? "text-ink"
+    : sameValue
+    ? "text-white"
     : givens[index]
     ? "text-white"
     : "text-accentSoft";
@@ -40,7 +47,11 @@ function cellClasses(index, state) {
     "font-semibold tabular-nums transition-colors duration-100",
     bg,
     text,
-    isSelected ? "ring-2 ring-inset ring-white/90" : "hover:bg-cellAlt",
+    isSelected
+      ? "ring-2 ring-inset ring-white/90"
+      : sameValue
+      ? "ring-2 ring-inset ring-white/90"
+      : "hover:bg-cellAlt",
   ].join(" ");
 }
 
@@ -75,8 +86,8 @@ function Cell({ index, state, onSelect }) {
   );
 }
 
-function Board({ values, givens, notes, conflicts, selected, onSelect }) {
-  const state = { values, givens, notes, conflicts, selected };
+function Board({ values, givens, notes, conflicts, selected, highlightDigit, onSelect }) {
+  const state = { values, givens, notes, conflicts, selected, highlightDigit };
 
   return (
     <div className="w-full max-w-[500px] rounded-2xl border border-white/10 bg-panel/80 p-1.5 shadow-card backdrop-blur-sm sm:p-3">

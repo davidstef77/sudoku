@@ -4,23 +4,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta ceruta: negru, albastru inchis, alb (+ rosu doar pentru greseli).
+        // Paleta ceruta: alb, negru si gri inchis (+ rosu doar pentru greseli).
         ink: "#000000",
-        panel: "#0a1430",
-        cell: "#0e1e4a",
-        cellAlt: "#17306e",
-        // Alb ca accent (butoane, selectie, evidentiere).
+        panel: "#141414",
+        cell: "#1c1c1c",
+        cellAlt: "#2b2b2b",
+        // Alb ca accent (butoane, selectie, evidentiere) + griuri curate.
         accent: "#ffffff",
-        accentDeep: "#dbe6ff",
-        accentStrong: "#a9bdf0",
-        accentSoft: "#c9d6f5",
+        accentDeep: "#b3b3b3",
+        accentStrong: "#e6e6e6",
+        accentSoft: "#d4d4d4",
         // Doar pentru greseli / conflicte.
         rose: "#f87171",
         // Pastrate doar pentru jocul bonus Turing Test (Mastermind cu culori).
         good: "#34d399",
         warn: "#fbbf24",
-        // Text secundar: albastru dezacturat.
-        muted: "#8fa0c9",
+        // Text secundar: gri neutru.
+        muted: "#9ca3af",
       },
       fontFamily: {
         display: ["Inter", "Segoe UI", "system-ui", "sans-serif"],

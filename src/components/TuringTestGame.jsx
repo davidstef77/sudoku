@@ -166,7 +166,7 @@ export default function TuringTestGame({ onExit }) {
       {/* ---------- panoul jocului ---------- */}
       <div className="card overflow-hidden">
         <div className="border-b border-white/10 bg-black/40 px-4 py-4 sm:px-6">
-          <h1 className="font-mono text-xl font-bold tracking-tight text-slate-50 sm:text-2xl">
+          <h1 className="font-mono text-xl font-bold tracking-tight text-gray-50 sm:text-2xl">
             Turing Test pentru Roboți
           </h1>
           <p className="mt-1 font-mono text-xs leading-relaxed text-muted">
@@ -237,7 +237,7 @@ export default function TuringTestGame({ onExit }) {
                     boxShadow: `0 0 12px ${color.hex}55`,
                   }}
                 />
-                <span className="font-mono text-[0.6rem] text-slate-300">
+                <span className="font-mono text-[0.6rem] text-gray-300">
                   {color.label}
                 </span>
               </button>
@@ -266,7 +266,7 @@ export default function TuringTestGame({ onExit }) {
 
           {/* ultimul feedback */}
           {history.length > 0 && status === "playing" && (
-            <div className="rounded-xl border border-white/10 bg-black/60 p-3 font-mono text-xs leading-relaxed text-slate-200">
+            <div className="rounded-xl border border-white/10 bg-black/60 p-3 font-mono text-xs leading-relaxed text-gray-200">
               <span className="text-good">ROBOT&gt;</span>{" "}
               {history[history.length - 1].feedback}
             </div>
@@ -278,7 +278,7 @@ export default function TuringTestGame({ onExit }) {
               <p className="font-mono text-2xl font-bold text-good">
                 ACCES PERMIS
               </p>
-              <p className="mt-1 font-mono text-xs text-slate-300">
+              <p className="mt-1 font-mono text-xs text-gray-300">
                 Ai ghicit codul în {history.length} încercări.
               </p>
               <div className="mt-3 flex justify-center gap-1.5">
@@ -305,7 +305,7 @@ export default function TuringTestGame({ onExit }) {
               <p className="font-mono text-2xl font-bold text-rose">
                 ACCES REFUZAT
               </p>
-              <p className="mt-1 font-mono text-xs text-slate-300">
+              <p className="mt-1 font-mono text-xs text-gray-300">
                 Ai epuizat cele {MAX_ATTEMPTS} încercări. Codul secret era:
               </p>
               <div className="mt-3 flex justify-center gap-1.5">
@@ -359,7 +359,7 @@ export default function TuringTestGame({ onExit }) {
                     ))}
                   </div>
                 </div>
-                <p className="mt-2 font-mono text-[0.7rem] leading-relaxed text-slate-300">
+                <p className="mt-2 font-mono text-[0.7rem] leading-relaxed text-gray-300">
                   <span className="text-good">ROBOT&gt;</span> {entry.feedback}
                 </p>
               </li>
