@@ -42,7 +42,11 @@ export function setToken(token) {
  */
 async function request(path, { method = "GET", body, timeoutMs = 10000 } = {}) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => {
+    // Abort CU motiv: fara argument, Chrome logheaza zgomotos in consola
+    // "signal is aborted without reason" la fiecare timeout.
+    controller.abort(new DOMException("Request timeout", "TimeoutError"));
+  }, timeoutMs);
 
   try {
     const response = await fetch(`${API_BASE}/api${path}`, {
