@@ -165,7 +165,7 @@ export default function TuringTestGame({ onExit }) {
 
       {/* ---------- panoul jocului ---------- */}
       <div className="card overflow-hidden">
-        <div className="border-b border-white/10 bg-black/40 px-4 py-4 sm:px-6">
+        <div className="border-b border-white/10 bg-[#0b0b18]/70 px-4 py-4 sm:px-6">
           <h1 className="font-mono text-xl font-bold tracking-tight text-gray-50 sm:text-2xl">
             Turing Test pentru Roboți
           </h1>
@@ -266,7 +266,7 @@ export default function TuringTestGame({ onExit }) {
 
           {/* ultimul feedback */}
           {history.length > 0 && status === "playing" && (
-            <div className="rounded-xl border border-white/10 bg-black/60 p-3 font-mono text-xs leading-relaxed text-gray-200">
+            <div className="rounded-xl border border-white/10 bg-[#0b0b18]/80 p-3 font-mono text-xs leading-relaxed text-gray-200">
               <span className="text-good">ROBOT&gt;</span>{" "}
               {history[history.length - 1].feedback}
             </div>

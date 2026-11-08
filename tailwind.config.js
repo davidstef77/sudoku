@@ -25,6 +25,7 @@ export default {
       },
       fontFamily: {
         display: ["Inter", "Segoe UI", "system-ui", "sans-serif"],
+        heading: ['"Space Grotesk"', "Inter", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
@@ -40,10 +41,25 @@ export default {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        toastIn: {
+          "0%": { opacity: "0", transform: "translateX(24px) scale(0.96)" },
+          "100%": { opacity: "1", transform: "translateX(0) scale(1)" },
+        },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(200%)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
       },
       animation: {
         pop: "pop 140ms ease-out",
         fadeUp: "fadeUp 200ms ease-out",
+        toastIn: "toastIn 260ms cubic-bezier(0.21, 1.02, 0.73, 1) both",
+        shimmer: "shimmer 2.4s ease-in-out infinite",
+        float: "float 4s ease-in-out infinite",
       },
     },
   },

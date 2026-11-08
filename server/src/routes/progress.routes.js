@@ -14,8 +14,14 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import { Progress } from "../models/Progress.js";
+import { XpEvent } from "../models/XpEvent.js";
 import { User } from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
+import {
+  grantXpForNewCompletions,
+  evaluateAndPersistAchievements,
+  getProfile,
+} from "../lib/serverMeta.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -97,6 +103,15 @@ router.put("/sync", async (req, res, next) => {
       (entry) => entry.updatedAt.getTime() > (currentVersion.get(entry.puzzleId) ?? 0)
     );
 
+    // 2b) Gamification — XP-ul se acorda INAINTE de scriere: asa putem
+    //     compara corect cu ce era deja completat pe server (anti-dublu).
+    //     Eșecul aici nu blochează scrierea progresului.
+    try {
+      await grantXpForNewCompletions(req.userId, toWrite);
+    } catch (xpError) {
+      console.warn("xp grant failed:", xpError?.message);
+    }
+
     if (toWrite.length > 0) {
       const ops = toWrite.map((entry) => ({
         replaceOne: {
@@ -147,12 +162,47 @@ router.put("/sync", async (req, res, next) => {
         : { solved: 0, attempted: 0, totalSeconds: 0, bestTimes: {} };
     }
 
-    // 4) Returnam totul combinat, ca clientul sa se alinieze la server.
+    // 3b) Seria zilnica: last-write-wins dupa data ultimei zile rezolvate.
+    //     Pastram si maxStreak pentru realizarile de consistenta.
+    const clientDaily = req.body?.daily || null;
+    if (
+      clientDaily &&
+      (typeof clientDaily.lastCompleted === "string" || clientDaily.lastCompleted === null)
+    ) {
+      const user = await User.findById(req.userId).lean();
+      const serverLast = user?.daily?.lastCompleted || null;
+      const clientLast = clientDaily.lastCompleted;
+      const clientStreak = Math.max(0, Math.floor(Number(clientDaily.streak) || 0));
+
+      if (!serverLast || !clientLast || clientLast >= serverLast) {
+        const maxStreak = Math.max(Number(user?.maxStreak) || 0, clientStreak);
+        await User.updateOne(
+          { _id: req.userId },
+          { $set: { daily: { lastCompleted: clientLast, streak: clientStreak }, maxStreak } }
+        );
+      }
+    }
+
+    // 4) Realizarile se evalueaza dupa ce progresul e scris (datele noi
+    //    sunt vizibile pentru agregari). Clientul primeste profilul + noile
+    //    deblocari pentru notificari animate.
+    let profile = null;
+    let newlyUnlocked = [];
+    try {
+      const evaluation = await evaluateAndPersistAchievements(req.userId);
+      newlyUnlocked = evaluation.newlyUnlocked;
+      profile = await getProfile(req.userId);
+    } catch (metaError) {
+      // Gamification nu trebuie sa blocheze sincronizarea progresului.
+      console.warn("meta sync failed:", metaError?.message);
+    }
+
+    // 5) Returnam totul combinat, ca clientul sa se alinieze la server.
     const docs = await Progress.find({ userId: req.userId })
       .lean()
       .select("-_id puzzleId difficulty values notes elapsed mistakes hintsUsed correct completed updatedAt");
 
-    res.json({ progress: docs, stats: mergedStats, written: toWrite.length });
+    res.json({ progress: docs, stats: mergedStats, written: toWrite.length, profile, newlyUnlocked });
   } catch (error) {
     next(error);
   }
@@ -162,11 +212,15 @@ router.put("/sync", async (req, res, next) => {
 router.post("/reset", async (req, res, next) => {
   try {
     await Progress.deleteMany({ userId: req.userId });
+    await XpEvent.deleteMany({ userId: req.userId });
     await User.updateOne(
       { _id: req.userId },
       {
         $set: {
           stats: { solved: 0, attempted: 0, totalSeconds: 0, bestTimes: {} },
+          xpTotal: 0,
+          achievements: {},
+          maxStreak: 0,
         },
       }
     );

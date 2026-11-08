@@ -14,12 +14,23 @@ import GameScreen from "./components/GameScreen.jsx";
 import TuringTestGame from "./components/TuringTestGame.jsx";
 import SettingsPanel from "./components/SettingsPanel.jsx";
 import AuthModal from "./components/AuthModal.jsx";
+import Nav from "./components/Nav.jsx";
+import AchievementsPage from "./components/AchievementsPage.jsx";
+import LeaderboardPage from "./components/LeaderboardPage.jsx";
+import AchievementToasts from "./components/AchievementToast.jsx";
 import api, { initToken } from "./lib/api.js";
 import { DIFFICULTIES } from "./lib/sudoku.js";
 import { getDailyPuzzle, loadDailyState, recordDailySolved } from "./lib/daily.js";
 import { loadTheme } from "./lib/theme.js";
 import { setSoundMuted } from "./lib/sound.js";
+import { levelForXp } from "./lib/xp.js";
 import { loadSettings, saveSetting } from "./storage/settings.js";
+import {
+  awardSolve,
+  adoptServerProfile,
+  loadProfile,
+  buildLocalContext,
+} from "./storage/profile.js";
 import {
   getLastPlayed,
   loadAllProgress,
@@ -51,6 +62,12 @@ export default function App() {
   // seria zilnica
   const [dailyState, setDailyState] = useState({ lastCompleted: null, streak: 0 });
 
+  // gamification: profil XP + realizari + notificari animate
+  const [profile, setProfile] = useState(null);
+  const [localContext, setLocalContext] = useState(null);
+  const [toasts, setToasts] = useState([]);
+  const toastKey = useRef(0);
+
   // ---------- incarcare initiala ----------
   useEffect(() => {
     let active = true;
@@ -76,6 +93,11 @@ export default function App() {
       setDailyState(daily);
       setSoundMuted(loadedSettings.soundMuted);
       // tema este aplicata de loadTheme()
+
+      // profil gamification local (functioneaza si fara cont)
+      const localProfile = await loadProfile();
+      setProfile(localProfile);
+      setLocalContext(await buildLocalContext(localProfile));
 
       // Daca avem token, verificam rapid ca e valid si sincronizam.
       if (hasToken) {
@@ -106,6 +128,7 @@ export default function App() {
     try {
       const all = await loadAllProgress();
       const localStats = await loadStats();
+      const daily = await loadDailyState();
 
       const entries = Object.values(all).map((entry) => ({
         puzzleId: entry.id,
@@ -120,7 +143,7 @@ export default function App() {
         updatedAt: entry.updatedAt,
       }));
 
-      const merged = await api.syncProgress(entries, localStats);
+      const merged = await api.syncProgress(entries, localStats, daily);
 
       // Scriem local doar intrarile server mai noi decat cele locale.
       for (const entry of merged.progress) {
@@ -147,6 +170,14 @@ export default function App() {
         bestTimes,
       });
       setProgress(await loadAllProgress());
+
+      // Profilul serverului e autoritar: XP + realizari deblocate acolo.
+      if (merged.profile) {
+        const adopted = await adoptServerProfile(merged.profile);
+        setProfile(adopted);
+        setLocalContext(await buildLocalContext(adopted));
+        pushToastsFor(merged.newlyUnlocked || []);
+      }
     } catch {
       // Offline sau server indisponibil: nu deranjam utilizatorul.
     } finally {
@@ -184,19 +215,52 @@ export default function App() {
     setProgress(all);
   }, [activeLevel]);
 
+  // ---------- gamification: notificari ----------
+  const pushToast = useCallback((toast) => {
+    toastKey.current += 1;
+    setToasts((prev) => [...prev, { ...toast, key: `t${toastKey.current}` }]);
+  }, []);
+
+  const dismissToast = useCallback((key) => {
+    setToasts((prev) => prev.filter((toast) => toast.key !== key));
+  }, []);
+
+  const pushToastsFor = useCallback(
+    (achievementIds) => {
+      for (const id of achievementIds || []) pushToast({ type: "achievement", id });
+    },
+    [pushToast]
+  );
+
   // ---------- rezolvare ----------
-  /** La rezolvare: actualizam statisticile o singura data. */
+  /** La rezolvare: statistici + XP + realizari, o singura data per puzzle. */
   const handleSolved = useCallback(
-    async (puzzle, seconds) => {
+    async (puzzle, seconds, extra = {}) => {
       const fresh = await recordSolved(puzzle.difficulty, seconds);
       setStats(fresh);
       const all = await loadAllProgress();
       setProgress(all);
 
+      // XP + realizari locale (offline-first). Serverul recalculeaza
+      // autoritar la sync; local, XP-ul e acordat o singura data per puzzle.
+      const award = await awardSolve({
+        puzzleId: puzzle.id,
+        difficulty: puzzle.difficulty,
+        seconds,
+        mistakes: extra.mistakes ?? 0,
+        hintsUsed: extra.hintsUsed ?? 0,
+      });
+      setProfile(award.profile);
+      setLocalContext(await buildLocalContext(award.profile));
+      pushToastsFor(award.newlyUnlocked);
+      if (award.levelUp) {
+        pushToast({ type: "level", level: levelForXp(award.profile.xp) });
+      }
+
       // Sincronizare in fundal daca e autentificat (silentios, fara blocare UI).
       if (api.getToken()) syncNow();
     },
-    [syncNow]
+    [syncNow, pushToastsFor, pushToast]
   );
 
   /** Provocarea zilei rezolvata: actualizam seria + statisticile. */
@@ -220,7 +284,7 @@ export default function App() {
   // ---------- resetare ----------
   const handleReset = useCallback(async () => {
     const confirmed = window.confirm(
-      "Sigur vrei sa stergi tot progresul si statisticile? Actiunea nu poate fi anulata."
+      "Sigur vrei sa stergi tot progresul, XP-ul si realizarile? Actiunea nu poate fi anulata."
     );
     if (!confirmed) return;
 
@@ -233,6 +297,8 @@ export default function App() {
     setLast(null);
     setActiveId(null);
     setActiveLevel(null);
+    setProfile(await loadProfile());
+    setLocalContext(await buildLocalContext(await loadProfile()));
     setView("home");
   }, []);
 
@@ -259,6 +325,53 @@ export default function App() {
 
   if (view === "turing") {
     return <TuringTestGame onExit={() => setView("home")} />;
+  }
+
+  // ---------- pagini de gamification (cu navigatia partajata) ----------
+  if (view === "achievements" || view === "leaderboard") {
+    return (
+      <>
+        <Nav
+          active={view}
+          profile={profile}
+          user={user}
+          syncing={syncing}
+          onNavigate={setView}
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenAuth={() => setShowAuth(true)}
+        />
+        {view === "achievements" ? (
+          <AchievementsPage
+            profile={profile}
+            localContext={localContext}
+            user={user}
+            onSynced={(data) => pushToastsFor(data?.newlyUnlocked)}
+          />
+        ) : (
+          <LeaderboardPage user={user} onOpenAuth={() => setShowAuth(true)} />
+        )}
+
+        <AchievementToasts toasts={toasts} onDismiss={dismissToast} />
+
+        {showSettings && (
+          <SettingsPanel
+            settings={settings}
+            onChange={handleSettingChange}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+        {showAuth && (
+          <AuthModal
+            onClose={() => setShowAuth(false)}
+            onAuthenticated={async (authenticatedUser) => {
+              setUser(authenticatedUser);
+              setShowAuth(false);
+              await syncNow();
+            }}
+          />
+        )}
+      </>
+    );
   }
 
   if (view === "level" && activeLevel) {
@@ -303,22 +416,31 @@ export default function App() {
 
   return (
     <>
+      <Nav
+        active="home"
+        profile={profile}
+        user={user}
+        syncing={syncing}
+        onNavigate={setView}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenAuth={() => setShowAuth(true)}
+      />
+
       <Home
         puzzles={puzzles}
         progress={progress}
         stats={stats}
         lastPlayed={lastPlayed}
         daily={dailyInfo}
-        user={user}
-        syncing={syncing}
+        profile={profile}
         onOpenLevel={openLevel}
         onContinue={() => lastPlayed && openPuzzle(lastPlayed)}
         onOpenTuring={() => setView("turing")}
         onOpenDaily={() => setView("daily")}
-        onOpenSettings={() => setShowSettings(true)}
-        onOpenAuth={() => setShowAuth(true)}
         onReset={handleReset}
       />
+
+      <AchievementToasts toasts={toasts} onDismiss={dismissToast} />
 
       {showSettings && (
         <SettingsPanel

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -12,31 +12,36 @@
    ========================================================================== */
 
 :root {
-  /* --- dark --- */
-  --c-surface: 255 255 255; /* "white"-ul semantic: text principal, borduri */
-  --c-ink: 0 0 0;           /* text pe fundal deschis (butoane accent) */
-  --c-panel: 20 20 20;      /* carduri */
-  --c-cell: 28 28 28;       /* celule table */
-  --c-cellAlt: 43 43 43;    /* celule evidentiate */
-  --c-accent: 255 255 255;  /* butoane primare, selectie */
-  --c-accentDeep: 179 179 179;
-  --c-accentStrong: 230 230 230;
-  --c-accentSoft: 212 212 212;
-  --c-muted: 156 163 175;
+  /* --- dark: "Midnight Violet" --- */
+  --c-surface: 244 244 255; /* "white"-ul semantic: text principal, borduri */
+  --c-ink: 255 255 255;     /* text pe fundal deschis (butoane accent) */
+  --c-panel: 24 24 42;      /* carduri (indigo profund) */
+  --c-cell: 30 30 52;       /* celule table */
+  --c-cellAlt: 48 48 82;    /* celule evidentiate */
+  --c-accent: 139 124 255;  /* butoane primare, selectie (#8B7CFF) */
+  --c-accentDeep: 104 91 224;
+  --c-accentStrong: 139 124 255;
+  --c-accentSoft: 167 155 255;
+  --c-muted: 148 150 180;
   --c-rose: 248 113 113;
   --c-good: 52 211 153;
   --c-warn: 251 191 36;
-  --c-glow-ring: 255 255 255;
+  --c-glow-ring: 139 124 255;
   --c-card-shadow: 0 0 0;
 
   /* Fundal pe <html>, ca sa acopere toata pagina indiferent de scroll. */
-  --bg-color: #000000;
+  --bg-color: #07070f;
   --bg-image: radial-gradient(
       48rem 28rem at 50% -12rem,
-      rgba(255, 255, 255, 0.08),
+      rgba(139, 124, 255, 0.2),
       transparent 62%
     ),
-    linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 55%, #000000 100%);
+    radial-gradient(
+      42rem 26rem at 88% 112%,
+      rgba(34, 211, 238, 0.08),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #14142b 0%, #0b0b18 55%, #07070f 100%);
 }
 
 html.light {
@@ -90,6 +95,13 @@ html.light {
     color: rgb(var(--c-surface));
   }
 
+  /* Titluri din Space Grotesk — identitate "gaming premium". */
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+  }
+
   ::selection {
     @apply bg-white/25;
   }
@@ -121,6 +133,17 @@ html.light {
   .card {
     @apply rounded-2xl border bg-panel/90 shadow-card backdrop-blur;
     border-color: rgb(var(--c-surface) / 0.1);
+  }
+
+  /* Card premium: bordura cu gradient violet la hover. */
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-0.5;
+  }
+  .card-hover:hover {
+    border-color: rgb(var(--c-accent) / 0.45);
+    box-shadow:
+      0 8px 30px -12px rgb(var(--c-accent) / 0.25),
+      0 12px 32px -12px rgb(var(--c-card-shadow) / 0.7);
   }
 
   /* Buton principal */
@@ -189,9 +212,26 @@ html.light {
     color: rgb(var(--c-surface));
   }
 
-  /* Titlu cu gradient accent */
+  /* Titlu cu gradient accent (violet in dark, ink in light) */
   .text-gradient {
     @apply bg-gradient-to-r from-white via-accentStrong to-accentDeep bg-clip-text text-transparent;
+  }
+
+  /* Bara de progres premium (stralucire discreta la capat). */
+  .progress-bar {
+    @apply relative h-1.5 w-full overflow-hidden rounded-full;
+    background-color: rgb(var(--c-surface) / 0.06);
+  }
+  .progress-fill {
+    @apply relative h-full rounded-full transition-all duration-500;
+    background: linear-gradient(90deg, rgb(var(--c-accentDeep)), rgb(var(--c-accent)));
+    box-shadow: 0 0 12px rgb(var(--c-accent) / 0.5);
+  }
+
+  /* Badge de raritate pentru realizari. */
+  .badge {
+    @apply rounded-full border px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider;
+    border-color: rgb(var(--c-surface) / 0.15);
   }
 
   /* Ascunde scrollbar-ul pentru listele orizontale */

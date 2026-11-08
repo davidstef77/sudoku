@@ -40,6 +40,14 @@ const userSchema = new mongoose.Schema(
       lastCompleted: { type: String, default: null },
       streak: { type: Number, default: 0 },
     },
+
+    // ----- gamification (scrise DOAR de server, niciodata de client) -----
+    // XP total = suma evenimentelor din colectia XpEvent (recalculata server-side).
+    xpTotal: { type: Number, default: 0, min: 0 },
+    // Realizarile deblocate: { <achievementId>: data deblocarii }.
+    achievements: { type: Map, of: Date, default: {} },
+    // Cea mai lunga serie zilnica observata (pentru realizarile de consistenta).
+    maxStreak: { type: Number, default: 0, min: 0 },
   },
   {
     timestamps: true, // createdAt / updatedAt automate

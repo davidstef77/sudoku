@@ -51,9 +51,9 @@ export default function LevelScreen({ level, puzzles, progress, onBack, onOpen }
           </div>
         </div>
 
-        <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="card card-hover flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-white">{meta.label}</h1>
+            <h1 className="text-xl font-bold">{meta.label}</h1>
             <p className="mt-0.5 text-xs text-muted">
               {items.length} puzzle-uri · {meta.givens} cifre inițiale ·{" "}
               {solvedCount} rezolvate · {startedCount} începute

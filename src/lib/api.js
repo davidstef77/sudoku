@@ -110,16 +110,32 @@ export const api = {
    * Sincronizare bulk: trimitem intrarile modificate local si statisticile,
    * primim inapoi starea combinata server + local.
    */
-  async syncProgress(entries, stats) {
+  async syncProgress(entries, stats, daily) {
     return request("/progress/sync", {
       method: "PUT",
-      body: { entries, stats },
+      body: { entries, stats, daily },
       timeoutMs: 20000,
     });
   },
 
   async resetServerProgress() {
     return request("/progress/reset", { method: "POST" });
+  },
+
+  // ---------------- gamification ----------------
+
+  /** Realizarile + progresul + profilul XP (evaluat pe server). */
+  async fetchAchievements() {
+    return request("/achievements");
+  },
+
+  /**
+   * Clasamentul.
+   * @param {{scope?: "global"|"weekly"|"monthly", sort?: string}} options
+   */
+  async fetchLeaderboard({ scope = "global", sort = "xp" } = {}) {
+    const params = new URLSearchParams({ scope, sort });
+    return request(`/leaderboard?${params.toString()}`);
   },
 };
 

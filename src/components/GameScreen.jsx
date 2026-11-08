@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Board from "./Board.jsx";
 import NumberPad from "./NumberPad.jsx";
 import { DIFFICULTIES, formatTime } from "../lib/sudoku.js";
+import { XP_PER_DIFFICULTY } from "../lib/xp.js";
 import { useSudoku } from "../hooks/useSudoku.js";
 import { loadProgress, saveProgress } from "../storage/progress.js";
 
@@ -110,7 +111,11 @@ function Game({ puzzle, saved, onExit, onSolved, mistakesLimit, isDaily }) {
         correct: game.correct,
         difficulty: puzzle.difficulty,
       });
-      if (active) onSolved?.(puzzle, game.elapsed);
+      if (active)
+        onSolved?.(puzzle, game.elapsed, {
+          mistakes: game.mistakes,
+          hintsUsed: game.hintsUsed,
+        });
     })();
 
     return () => {
@@ -236,13 +241,24 @@ function Game({ puzzle, saved, onExit, onSolved, mistakesLimit, isDaily }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm">
           <div className="card w-full max-w-sm animate-fadeUp p-6 text-center">
             <p className="text-4xl">🎉</p>
-            <h2 className="mt-3 text-xl font-bold text-white">Puzzle rezolvat!</h2>
+            <h2 className="mt-3 text-xl font-bold">Puzzle rezolvat!</h2>
             <p className="mt-1 text-sm text-muted">
               #{puzzle.id} · {meta.label} · {formatTime(game.elapsed)}
             </p>
             <p className="mt-1 text-xs text-muted">
-              {game.mistakes} greseli · {game.hintsUsed} hint-uri
+              {game.mistakes} greşeli · {game.hintsUsed} hint-uri
             </p>
+
+            <div className="mt-4 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2.5">
+              <p className="font-mono text-lg font-bold text-accent">
+                +{XP_PER_DIFFICULTY[puzzle.difficulty]} XP
+              </p>
+              <p className="text-[0.65rem] text-muted">
+                {game.mistakes === 0 && game.hintsUsed === 0
+                  ? "Perfect — fără greşeli, fără hint-uri! 💎"
+                  : "XP-ul se acordă o singură dată per puzzle"}
+              </p>
+            </div>
 
             <div className="mt-6 flex gap-2">
               <button onClick={game.restart} className="btn-ghost flex-1 text-xs">

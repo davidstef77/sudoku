@@ -18,6 +18,7 @@ import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import authRoutes from "./routes/auth.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
+import metaRoutes from "./routes/meta.routes.js";
 import { notFound, errorHandler } from "./middleware/errors.js";
 
 export function createApp() {
@@ -80,6 +81,7 @@ export function createApp() {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/progress", progressRoutes);
+  app.use("/api", metaRoutes); // /api/achievements, /api/leaderboard
 
   // ---------- erori ----------
   app.use(notFound);

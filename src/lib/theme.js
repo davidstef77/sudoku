@@ -17,7 +17,7 @@ export function applyTheme(theme) {
   root.classList.remove("dark"); // curatenie: "dark" e default prin CSS
 
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", light ? "#fafafa" : "#000000");
+  if (meta) meta.setAttribute("content", light ? "#fafafa" : "#07070f");
 
   const scheme = document.querySelector('meta[name="color-scheme"]');
   if (scheme) scheme.setAttribute("content", light ? "light" : "dark");
