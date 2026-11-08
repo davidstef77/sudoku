@@ -14,7 +14,7 @@ import { loadProgress, saveProgress } from "../storage/progress.js";
 
 const SAVE_DELAY = 350;
 
-export default function GameScreen({ puzzle, onExit, onSolved }) {
+export default function GameScreen({ puzzle, onExit, onSolved, mistakesLimit = 5, isDaily = false }) {
   const [saved, setSaved] = useState(undefined); // undefined = se incarca
 
   // Incarcam progresul o singura data, la deschidere.
@@ -37,12 +37,19 @@ export default function GameScreen({ puzzle, onExit, onSolved }) {
   }
 
   return (
-    <Game puzzle={puzzle} saved={saved} onExit={onExit} onSolved={onSolved} />
+    <Game
+      puzzle={puzzle}
+      saved={saved}
+      onExit={onExit}
+      onSolved={onSolved}
+      mistakesLimit={mistakesLimit}
+      isDaily={isDaily}
+    />
   );
 }
 
-function Game({ puzzle, saved, onExit, onSolved }) {
-  const game = useSudoku(puzzle, saved);
+function Game({ puzzle, saved, onExit, onSolved, mistakesLimit, isDaily }) {
+  const game = useSudoku(puzzle, saved, { mistakesLimit });
   const timer = useRef(null);
   const wasCompleted = useRef(Boolean(saved?.completed));
 
@@ -153,6 +160,9 @@ function Game({ puzzle, saved, onExit, onSolved }) {
         </button>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+          {isDaily && (
+            <span className="font-semibold text-warn">🗓️ Provocarea zilei</span>
+          )}
           <span className="font-semibold text-white">
             #{puzzle.id}
             <span className={`ml-2 ${meta.color}`}>{meta.label}</span>
@@ -160,6 +170,7 @@ function Game({ puzzle, saved, onExit, onSolved }) {
           <span className="font-mono tabular-nums">⏱ {formatTime(game.elapsed)}</span>
           <span className={`tabular-nums ${game.mistakes > 0 ? "text-rose" : ""}`}>
             greseli: {game.mistakes}
+            {game.mistakesLimit > 0 ? ` / ${game.mistakesLimit}` : ""}
           </span>
           <span className="tabular-nums">hint: {game.hintsUsed}</span>
         </div>

@@ -6,5 +6,20 @@ export default defineConfig({
   // trebuie sa foloseasca acest prefix la build.
   base: "/sudoku/",
   plugins: [react()],
-  server: { port: 5173, open: false },
+  server: {
+    port: 5173,
+    open: false,
+    // In dezvoltare, cererile /api sunt proxy-uite catre backend-ul local.
+    proxy: {
+      "/api": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+    },
+  },
+  // Configurare Vitest (npm test)
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.js"],
+  },
 });

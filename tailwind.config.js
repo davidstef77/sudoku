@@ -4,31 +4,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta ceruta: alb, negru si gri inchis (+ rosu doar pentru greseli).
-        ink: "#000000",
-        panel: "#141414",
-        cell: "#1c1c1c",
-        cellAlt: "#2b2b2b",
-        // Alb ca accent (butoane, selectie, evidentiere) + griuri curate.
-        accent: "#ffffff",
-        accentDeep: "#b3b3b3",
-        accentStrong: "#e6e6e6",
-        accentSoft: "#d4d4d4",
-        // Doar pentru greseli / conflicte.
-        rose: "#f87171",
-        // Pastrate doar pentru jocul bonus Turing Test (Mastermind cu culori).
-        good: "#34d399",
-        warn: "#fbbf24",
-        // Text secundar: gri neutru.
-        muted: "#9ca3af",
+        // Toate culorile semantice vin din variabile CSS (index.css),
+        // ca tema light/dark sa se schimbe instant, fara reload.
+        // Spre deosebire de valori fixe, aici "alb/negru" sunt relative la tema.
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        panel: "rgb(var(--c-panel) / <alpha-value>)",
+        cell: "rgb(var(--c-cell) / <alpha-value>)",
+        cellAlt: "rgb(var(--c-cellAlt) / <alpha-value>)",
+        accent: "rgb(var(--c-accent) / <alpha-value>)",
+        accentDeep: "rgb(var(--c-accentDeep) / <alpha-value>)",
+        accentStrong: "rgb(var(--c-accentStrong) / <alpha-value>)",
+        accentSoft: "rgb(var(--c-accentSoft) / <alpha-value>)",
+        rose: "rgb(var(--c-rose) / <alpha-value>)",
+        good: "rgb(var(--c-good) / <alpha-value>)",
+        warn: "rgb(var(--c-warn) / <alpha-value>)",
+        muted: "rgb(var(--c-muted) / <alpha-value>)",
+        // "white" este folosit intens in componente ca text/borduri —
+        // il pastram semantic: alb in tema dark, aproape-negru in light.
+        white: "rgb(var(--c-surface) / <alpha-value>)",
       },
       fontFamily: {
         display: ["Inter", "Segoe UI", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(255,255,255,0.3), 0 0 24px rgba(255,255,255,0.15)",
-        card: "0 12px 32px -12px rgba(0,0,0,0.7)",
+        glow: "0 0 0 1px rgb(var(--c-glow-ring) / 0.3), 0 0 24px rgb(var(--c-glow-ring) / 0.15)",
+        card: "0 12px 32px -12px rgb(var(--c-card-shadow) / 0.7)",
       },
       keyframes: {
         pop: {

@@ -1,5 +1,5 @@
 /**
- * Pagina principiala: selectarea nivelului.
+ * Pagina principala: selectarea nivelului + provocarea zilei + setari.
  * Fiecare nivel este un card mare si clar; un singur click deschide
  * lista de puzzle-uri a nivelului respectiv.
  */
@@ -12,9 +12,14 @@ export default function Home({
   progress,
   stats,
   lastPlayed,
+  daily,
+  user,
   onOpenLevel,
   onContinue,
   onOpenTuring,
+  onOpenDaily,
+  onOpenSettings,
+  onOpenAuth,
   onReset,
 }) {
   // Informatii agregate pentru fiecare nivel.
@@ -51,23 +56,32 @@ export default function Home({
               Sudoku <span className="text-gradient">1000</span>
             </h1>
             <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted">
-              Alege un nivel de dificultate. Progresul se salvează automat în browser.
+              Alege un nivel de dificultate. Progresul se salvează automat.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={onOpenSettings} className="btn-sm" aria-label="Setări">
+              ⚙️ Setări
+            </button>
+            <button
+              onClick={onOpenAuth}
+              className="btn-sm"
+              aria-label={user ? "Contul meu" : "Autentificare"}
+            >
+              {user
+                ? `👤 ${user.displayName || user.email?.split("@")[0]}`
+                : "🔐 Cont"}
+            </button>
             {lastPlayed && (
               <button onClick={onContinue} className="btn-primary">
-                Continua #{lastPlayed}
+                Continuă #{lastPlayed}
               </button>
             )}
-            <button onClick={onReset} className="btn-ghost">
-              Resetează progresul
-            </button>
           </div>
         </div>
 
-        {/* ---------- statistici ---------- */}
+        {/* ---------- statistici generale ---------- */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat
             label="Rezolvate"
@@ -81,12 +95,70 @@ export default function Home({
             tone="text-white"
           />
           <Stat
-            label="Record ușor"
-            value={stats.bestTimes?.easy ? formatTime(stats.bestTimes.easy) : "—"}
+            label="Seria zilnică"
+            value={daily?.streak ? `🔥 ${daily.streak}` : "—"}
             tone="text-accentSoft"
           />
         </div>
+
+        {/* ---------- recorduri personale (#5) ---------- */}
+        <section className="card p-4">
+          <h2 className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+            Recorduri personale — cel mai rapid timp per nivel
+          </h2>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            {DIFFICULTY_ORDER.map((key) => {
+              const meta = DIFFICULTIES[key];
+              const best = stats.bestTimes?.[key];
+              return (
+                <div
+                  key={key}
+                  className="flex flex-col gap-1 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2"
+                >
+                  <span className="flex items-center gap-1.5 text-[0.65rem] font-semibold">
+                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                    <span className={meta.color}>{meta.label}</span>
+                  </span>
+                  <span
+                    className={`font-mono text-sm font-bold tabular-nums ${
+                      best ? "text-white" : "text-muted/50"
+                    }`}
+                  >
+                    {best ? formatTime(best) : "—"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </header>
+
+      {/* ---------- provocarea zilei (#4) ---------- */}
+      {daily?.puzzle && (
+        <button
+          onClick={onOpenDaily}
+          className="group flex items-center justify-between gap-4 rounded-2xl border border-white/15 bg-gradient-to-r from-accent/10 via-panel/90 to-panel/90 p-4 text-left transition hover:border-white/40"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/5 text-lg">
+              🗓️
+            </span>
+            <div>
+              <p className="font-mono text-sm font-bold text-white">
+                Provocarea zilei · {daily.puzzle.difficultyLabel}
+              </p>
+              <p className="mt-0.5 text-xs text-muted">
+                {daily.solvedToday
+                  ? "✅ Rezolvată azi — seria continuă mâine"
+                  : `Puzzle #${daily.puzzle.id} · seria: ${daily.streak || 0} 🔥`}
+              </p>
+            </div>
+          </div>
+          <span className="btn-sm shrink-0 font-mono">
+            {daily.solvedToday ? "Vezi →" : "Joacă →"}
+          </span>
+        </button>
+      )}
 
       {/* ---------- joc bonus: Turing Test ---------- */}
       <button

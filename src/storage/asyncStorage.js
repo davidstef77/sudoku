@@ -96,4 +96,9 @@ export const STORAGE_KEYS = {
   progress: (id) => `progress:${id}`,
   stats: "stats",
   lastPlayed: "lastPlayed",
+  soundMuted: "soundMuted",
+  mistakesLimit: "mistakesLimit",
+  theme: "theme",
+  token: "token",
+  dailyState: "dailyState",
 };

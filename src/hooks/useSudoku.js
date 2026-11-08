@@ -7,7 +7,10 @@
  *     daca nu corespunde solutiei sau incalca regulile de rand / coloana /
  *     bloc 3x3, cifra NU este scrisa, celula ramane goala si se incrementeaza
  *     contorul de greseli;
- *   - la exact 5 greseli jocul se reseteaza automat (puzzle-ul reincepe de la zero);
+ *   - la atingerea limitei de greseli (configurabila: 0 = nelimitat,
+ *     3 sau 5) jocul se reseteaza automat;
+ *   - timerul se opreste automat cand tab-ul este ascuns (document.hidden),
+ *     ca sa nu curga timp care nu a fost jucat;
  *   - puzzle-ul este considerat rezolvat doar cand toate cele 81 de celule
  *     sunt completate corect, fara conflicte si conform solutiei.
  *
@@ -22,9 +25,11 @@ import {
   isValidPlacement,
   parseBoard,
 } from "../lib/sudoku.js";
+import haptics from "../lib/haptics.js";
+import { sounds } from "../lib/sound.js";
 
 const MAX_HISTORY = 200;
-const MAX_MISTAKES = 5;
+const DEFAULT_MISTAKES_LIMIT = 5;
 
 /** Notele se tin ca string-uri ("135") ca sa fie usor de salvat. */
 const emptyNotes = () => Array.from({ length: CELLS }, () => "");
@@ -64,8 +69,12 @@ function sanitizeValues(savedValues, givens, solution) {
 /**
  * @param {object} puzzle  intrarea din puzzles.json
  * @param {object|null} saved  progresul salvat anterior
+ * @param {object} options  { mistakesLimit: 0|3|5 } — 0 inseamna nelimitat
  */
-export function useSudoku(puzzle, saved) {
+export function useSudoku(puzzle, saved, options = {}) {
+  const mistakesLimit =
+    [0, 3, 5].includes(options.mistakesLimit) ? options.mistakesLimit : DEFAULT_MISTAKES_LIMIT;
+
   const givens = useMemo(() => parseBoard(puzzle.puzzle), [puzzle.puzzle]);
   const solution = useMemo(() => parseBoard(puzzle.solution), [puzzle.solution]);
 
@@ -87,10 +96,16 @@ export function useSudoku(puzzle, saved) {
 
   const history = useRef([]);
 
-  // Cronometrul merge doar cat timp puzzle-ul nu e terminat.
+  // Cronometrul merge doar cat timp puzzle-ul nu e terminat SI tab-ul e vizibil.
   useEffect(() => {
     if (completed) return undefined;
-    const id = window.setInterval(() => setElapsed((value) => value + 1), 1000);
+
+    const id = window.setInterval(() => {
+      // Pauza automata: tab-ul ascuns nu conteaza timp jucat.
+      if (typeof document !== "undefined" && document.hidden) return;
+      setElapsed((value) => value + 1);
+    }, 1000);
+
     return () => window.clearInterval(id);
   }, [completed]);
 
@@ -99,6 +114,8 @@ export function useSudoku(puzzle, saved) {
   // Detectam terminarea jocului.
   useEffect(() => {
     if (!completed && isSolved(values, puzzle.solution)) {
+      sounds.complete();
+      haptics.complete();
       setCompleted(true);
     }
   }, [values, completed, puzzle.solution]);
@@ -111,6 +128,8 @@ export function useSudoku(puzzle, saved) {
   /** Selecteaza o celula si evidentiaza cifra din ea (daca exista). */
   const selectCell = useCallback(
     (index) => {
+      sounds.select();
+      haptics.tick();
       setSelected(index);
       const value = values[index];
       setHighlightDigit(value !== 0 ? value : null);
@@ -134,6 +153,8 @@ export function useSudoku(puzzle, saved) {
           ? current.replace(String(digit), "")
           : [...current, String(digit)].sort().join("");
 
+        sounds.note();
+        haptics.tick();
         pushHistory(values, notes);
         setNotes((prev) => prev.map((value, i) => (i === selected ? next : value)));
         return;
@@ -142,6 +163,7 @@ export function useSudoku(puzzle, saved) {
       // Daca aceeasi cifra e deja acolo, o stergem (toggle) — fara penalizare.
       const nextValue = values[selected] === digit ? 0 : digit;
       if (nextValue === 0) {
+        sounds.erase();
         pushHistory(values, notes);
         setValues((prev) => prev.map((value, i) => (i === selected ? 0 : value)));
         return;
@@ -154,10 +176,14 @@ export function useSudoku(puzzle, saved) {
       const wrongForSolution = digit !== solution[selected];
 
       if (violatesRules || wrongForSolution) {
+        sounds.wrong();
+        haptics.wrong();
         setMistakes((count) => count + 1);
         return;
       }
 
+      sounds.correct();
+      haptics.light();
       pushHistory(values, notes);
       setValues((prev) => prev.map((value, i) => (i === selected ? digit : value)));
 
@@ -179,6 +205,7 @@ export function useSudoku(puzzle, saved) {
   /** Sterge continutul celulei selectate. */
   const eraseCell = useCallback(() => {
     if (selected === null || completed || givens[selected]) return;
+    sounds.erase();
     pushHistory(values, notes);
     setValues((prev) => prev.map((value, i) => (i === selected ? 0 : value)));
     setNotes((prev) => prev.map((value, i) => (i === selected ? "" : value)));
@@ -196,6 +223,7 @@ export function useSudoku(puzzle, saved) {
     const target = selectedIsUsable ? selected : firstEmpty(values, givens);
     if (target === -1) return;
 
+    sounds.hint();
     pushHistory(values, notes);
     setValues((prev) => prev.map((value, i) => (i === target ? solution[target] : value)));
     setNotes((prev) => prev.map((value, i) => (i === target ? "" : value)));
@@ -208,12 +236,14 @@ export function useSudoku(puzzle, saved) {
   const undo = useCallback(() => {
     const previous = history.current.pop();
     if (!previous || completed) return;
+    sounds.undo();
     setValues(previous.values);
     setNotes(previous.notes);
   }, [completed]);
 
   /** Reset complet la starea initiala a puzzle-ului. */
   const restart = useCallback(() => {
+    sounds.reset();
     history.current = [];
     setValues(givens);
     setNotes(emptyNotes());
@@ -225,12 +255,15 @@ export function useSudoku(puzzle, saved) {
     setHighlightDigit(null);
   }, [givens]);
 
-  // La exact 5 greseli jocul se reia automat de la zero.
+  // La atingerea limitei de greseli jocul se reia automat de la zero.
+  // mistakesLimit = 0 inseamna "nelimitat" — fara reset.
   useEffect(() => {
-    if (mistakes >= MAX_MISTAKES) {
+    if (mistakesLimit > 0 && mistakes >= mistakesLimit) {
+      sounds.wrong();
+      haptics.wrong();
       restart();
     }
-  }, [mistakes, restart]);
+  }, [mistakes, mistakesLimit, restart]);
 
   /** Mutare cu tastatura (sageti). */
   const moveSelection = useCallback(
@@ -258,6 +291,7 @@ export function useSudoku(puzzle, saved) {
     setNoteMode,
     conflicts,
     mistakes,
+    mistakesLimit,
     hintsUsed,
     elapsed,
     completed,
