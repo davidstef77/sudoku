@@ -29,7 +29,30 @@ function ensureConnection() {
   });
 
   connectionPromise.catch((error) => {
-    console.error("[api] Conectarea la MongoDB a esuat:", error.message);
+    // Log detaliat: ce spune FIECARE server din cluster (DNS vs TCP vs TLS vs auth).
+    const servers = {};
+    for (const [host, detail] of Object.entries(error.errors ?? {})) {
+      servers[host] = {
+        code: detail.code,
+        codeName: detail.codeName,
+        message: String(detail.message || "").slice(0, 200),
+      };
+    }
+    console.error(
+      "[api] Conectarea la MongoDB a esuat:",
+      JSON.stringify(
+        {
+          name: error.name,
+          message: String(error.message || "").slice(0, 300),
+          code: error.code,
+          codeName: error.codeName,
+          errorLabels: error.errorLabels,
+          servers,
+        },
+        null,
+        0
+      )
+    );
   });
 }
 
