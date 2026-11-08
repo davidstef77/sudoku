@@ -16,9 +16,9 @@ import { requireAuth } from "../middleware/auth.js";
 import {
   ACHIEVEMENTS,
   achievementProgress,
-} from "../../src/lib/achievements.js";
+} from "../lib/achievements.js";
 import { buildAchievementContext, evaluateAndPersistAchievements, getProfile } from "../lib/serverMeta.js";
-import { levelForXp } from "../../src/lib/xp.js";
+import { levelForXp } from "../lib/xp.js";
 
 const router = Router();
 

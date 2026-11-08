@@ -21,8 +21,8 @@ import {
   ACHIEVEMENTS,
   ACHIEVEMENT_BY_ID,
   evaluateAchievements,
-} from "../../src/lib/achievements.js";
-import { XP_PER_DIFFICULTY, levelForXp } from "../../src/lib/xp.js";
+} from "./achievements.js";
+import { XP_PER_DIFFICULTY, levelForXp } from "./xp.js";
 
 /**
  * Minimul plauzibil de secunde per nivel, sub care un "rezolvat" este
