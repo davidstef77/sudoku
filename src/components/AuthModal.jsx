@@ -3,8 +3,8 @@
  * Dupa autentificare, progresul local este sincronizat automat cu serverul.
  */
 
-import { useState } from "react";
-import api from "../lib/api.js";
+import { useEffect, useState } from "react";
+import api, { warmUp } from "../lib/api.js";
 
 export default function AuthModal({ onClose, onAuthenticated, onError }) {
   const [mode, setMode] = useState("login"); // "login" | "register"
@@ -13,6 +13,11 @@ export default function AuthModal({ onClose, onAuthenticated, onError }) {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // Pornim serverul cat timp utilizatorul completeaza formularul.
+  useEffect(() => {
+    warmUp();
+  }, []);
 
   async function submit(event) {
     event.preventDefault();
