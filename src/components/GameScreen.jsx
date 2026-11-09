@@ -56,21 +56,44 @@ function Game({ puzzle, saved, onExit, onSolved, mistakesLimit, isDaily }) {
 
   const meta = DIFFICULTIES[puzzle.difficulty];
 
+  // Semnatura continutului jocului (fara cronometru). Doar o schimbare reala
+  // (mutare, notita, greseala, indiciu) primeste un timestamp nou. Altfel un
+  // puzzle lasat deschis pe calculator s-ar "reinnoi" in fiecare secunda din
+  // cauza cronometrului si ar suprascrie, la sincronizare, progresul facut
+  // intre timp pe telefon (last-write-wins).
+  const contentKey = JSON.stringify([
+    game.values,
+    game.notes,
+    game.mistakes,
+    game.hintsUsed,
+    game.completed,
+  ]);
+  const lastContent = useRef(contentKey);
+  const lastStamp = useRef(saved?.updatedAt ?? null);
+
   /** Salvare automata cu debounce, ca sa nu scriem la fiecare tasta. */
   useEffect(() => {
     if (timer.current) window.clearTimeout(timer.current);
 
-    timer.current = window.setTimeout(() => {
-      saveProgress(puzzle.id, {
-        values: game.values,
-        notes: game.notes,
-        elapsed: game.elapsed,
-        mistakes: game.mistakes,
-        hintsUsed: game.hintsUsed,
-        completed: game.completed,
-        correct: game.correct,
-        difficulty: puzzle.difficulty,
-      });
+    timer.current = window.setTimeout(async () => {
+      const changed = contentKey !== lastContent.current || !lastStamp.current;
+      lastContent.current = contentKey;
+      const payload = await saveProgress(
+        puzzle.id,
+        {
+          values: game.values,
+          notes: game.notes,
+          elapsed: game.elapsed,
+          mistakes: game.mistakes,
+          hintsUsed: game.hintsUsed,
+          completed: game.completed,
+          correct: game.correct,
+          difficulty: puzzle.difficulty,
+          updatedAt: lastStamp.current,
+        },
+        { keepTimestamp: !changed }
+      );
+      lastStamp.current = payload.updatedAt;
     }, SAVE_DELAY);
 
     return () => {
@@ -79,6 +102,7 @@ function Game({ puzzle, saved, onExit, onSolved, mistakesLimit, isDaily }) {
   }, [
     puzzle.id,
     puzzle.difficulty,
+    contentKey,
     game.values,
     game.notes,
     game.elapsed,

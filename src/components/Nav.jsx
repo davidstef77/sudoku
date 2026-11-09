@@ -3,7 +3,7 @@
  * Logo + rang/nivel + butoane de navigare cu iconite Lucide.
  */
 
-import { Trophy, Medal, Home, Settings, User, Sparkles } from "lucide-react";
+import { Trophy, Medal, Home, Settings, User, Sparkles, RefreshCw, CloudOff } from "lucide-react";
 import { levelProgress, rankForLevel } from "../lib/xp.js";
 
 export default function Nav({
@@ -11,6 +11,8 @@ export default function Nav({
   profile,
   user,
   syncing,
+  syncError,
+  onSync,
   onNavigate,
   onOpenSettings,
   onOpenAuth,
@@ -70,6 +72,35 @@ export default function Nav({
           />
 
           <span className="mx-1 h-6 w-px bg-white/10" aria-hidden />
+
+          {/* starea sincronizarii — doar pentru cont; click = sincronizeaza acum */}
+          {user && (
+            <button
+              onClick={onSync}
+              disabled={syncing}
+              className={`btn-sm ${syncError && !syncing ? "text-rose" : ""}`}
+              aria-label={
+                syncing
+                  ? "Se sincronizează"
+                  : syncError
+                  ? "Sincronizare eșuată — apasă pentru a reîncerca"
+                  : "Sincronizează acum"
+              }
+              title={
+                syncing
+                  ? "Se sincronizează…"
+                  : syncError
+                  ? "Nu s-a putut sincroniza (offline sau server indisponibil). Apasă pentru a reîncerca."
+                  : "Sincronizat. Apasă pentru a sincroniza acum."
+              }
+            >
+              {syncError && !syncing ? (
+                <CloudOff size={15} />
+              ) : (
+                <RefreshCw size={15} className={syncing ? "animate-spin" : ""} />
+              )}
+            </button>
+          )}
 
           <button onClick={onOpenSettings} className="btn-sm" aria-label="Setări">
             <Settings size={15} />

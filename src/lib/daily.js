@@ -89,3 +89,21 @@ export function activeStreak(state) {
     ? state.streak
     : 0;
 }
+
+/**
+ * Adopta seria de pe server daca e mai recenta decat cea locala (ex. puzzle-ul
+ * zilei rezolvat pe telefon, iar acum suntem pe calculator).
+ */
+export async function adoptServerDaily(serverDaily) {
+  const local = await loadDailyState();
+  const serverLast = serverDaily?.lastCompleted;
+  if (typeof serverLast !== "string" || !serverLast) return local;
+  if (local.lastCompleted && local.lastCompleted >= serverLast) return local;
+
+  const next = {
+    lastCompleted: serverLast,
+    streak: Math.max(1, Math.floor(Number(serverDaily.streak) || 1)),
+  };
+  await AsyncStorage.setJSON(STORAGE_KEYS.dailyState, next);
+  return next;
+}

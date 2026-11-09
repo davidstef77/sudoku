@@ -77,6 +77,10 @@ async function request(path, { method = "GET", body, timeoutMs = 10000 } = {}) {
 // ---------------- auth ----------------
 
 export const api = {
+  // Expus si pe obiect: App.jsx apeleaza `api.getToken()`. Lipsa lui facea ca
+  // ORICE sincronizare sa arunce TypeError (si, la pornire, sa delogheze).
+  getToken,
+
   async register(email, password, displayName) {
     const data = await request("/auth/register", {
       method: "POST",
@@ -100,7 +104,8 @@ export const api = {
   },
 
   async me() {
-    const data = await request("/auth/me");
+    // 20s: prima cerere poate prinde un "cold start" Vercel + conectarea la Atlas.
+    const data = await request("/auth/me", { timeoutMs: 20000 });
     return data.user;
   },
 

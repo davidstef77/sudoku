@@ -17,9 +17,16 @@ export async function loadProgress(id) {
   return AsyncStorage.getJSON(STORAGE_KEYS.progress(id), null);
 }
 
-/** Salveaza progresul unui puzzle. */
-export async function saveProgress(id, data) {
-  const payload = { ...data, id, updatedAt: Date.now() };
+/**
+ * Salveaza progresul unui puzzle.
+ * @param {{ keepTimestamp?: boolean }} options  keepTimestamp: pastreaza
+ *   `data.updatedAt` (folosit cand adoptam o versiune venita de pe server —
+ *   altfel ar primi ora locala si ar parea "mai noua" decat originalul).
+ */
+export async function saveProgress(id, data, { keepTimestamp = false } = {}) {
+  const incoming = new Date(data?.updatedAt ?? NaN).getTime();
+  const updatedAt = keepTimestamp && Number.isFinite(incoming) ? incoming : Date.now();
+  const payload = { ...data, id, updatedAt };
   await AsyncStorage.setJSON(STORAGE_KEYS.progress(id), payload);
   return payload;
 }
@@ -57,6 +64,13 @@ export async function loadAllProgress() {
 export async function loadStats() {
   const stats = await AsyncStorage.getJSON(STORAGE_KEYS.stats, null);
   return { ...EMPTY_STATS, ...(stats || {}) };
+}
+
+/** Inlocuieste statisticile locale (ex. dupa combinarea cu serverul). */
+export async function saveStats(stats) {
+  const merged = { ...EMPTY_STATS, ...(stats || {}) };
+  await AsyncStorage.setJSON(STORAGE_KEYS.stats, merged);
+  return merged;
 }
 
 /** Actualizeaza statisticile dupa un puzzle rezolvat. */

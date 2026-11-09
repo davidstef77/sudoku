@@ -100,6 +100,7 @@ export const STORAGE_KEYS = {
   mistakesLimit: "mistakesLimit",
   theme: "theme",
   token: "token",
+  user: "user", // ultimul profil de cont cunoscut (afisat si offline)
   dailyState: "dailyState",
   profile: "profile",
 };
