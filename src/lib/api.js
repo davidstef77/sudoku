@@ -104,6 +104,18 @@ export const api = {
     return data.user;
   },
 
+  /** Schimba numele afisat (apare in clasament). */
+  async updateProfile({ displayName }) {
+    const data = await request("/auth/me", { method: "PATCH", body: { displayName } });
+    return data.user;
+  },
+
+  /** Sterge definitiv contul si toate datele de pe server (cere parola). */
+  async deleteAccount(password) {
+    await request("/auth/me", { method: "DELETE", body: { password } });
+    setToken(null);
+  },
+
   // ---------------- progres ----------------
 
   async fetchAllProgress() {

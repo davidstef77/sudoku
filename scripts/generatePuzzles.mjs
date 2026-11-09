@@ -266,5 +266,14 @@ const outPath = resolve(__dirname, "../src/data/puzzles.json");
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(puzzles));
 
+// Catalogul compact pentru server (doar dificultate + solutie), folosit la
+// verificarea anti-cheat a puzzle-urilor raportate ca rezolvate.
+const catalogPath = resolve(__dirname, "../server/src/data/catalog.json");
+mkdirSync(dirname(catalogPath), { recursive: true });
+const catalog = Object.fromEntries(
+  puzzles.map((entry) => [entry.id, [entry.difficulty, entry.solution]])
+);
+writeFileSync(catalogPath, JSON.stringify(catalog));
+
 console.log(`\nScris ${puzzles.length} puzzle-uri in ${outPath}`);
 console.log(`Dimensiune fisier: ${(JSON.stringify(puzzles).length / 1024).toFixed(1)} KB`);

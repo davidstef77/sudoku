@@ -12,7 +12,6 @@
  */
 
 import { Router } from "express";
-import mongoose from "mongoose";
 import { Progress } from "../models/Progress.js";
 import { XpEvent } from "../models/XpEvent.js";
 import { User } from "../models/User.js";
@@ -20,49 +19,26 @@ import { requireAuth } from "../middleware/auth.js";
 import {
   grantXpForNewCompletions,
   evaluateAndPersistAchievements,
+  computeVerifiedStats,
   getProfile,
 } from "../lib/serverMeta.js";
+import { sanitizeEntry, resolveDaily } from "../lib/validation.js";
+
+/** Peste atat, payload-ul e clar abuziv (exista doar 1000 de puzzle-uri). */
+const MAX_ENTRIES_PER_SYNC = 1000;
+
+const PROGRESS_FIELDS =
+  "-_id puzzleId difficulty values notes elapsed mistakes hintsUsed correct completed updatedAt";
 
 const router = Router();
 router.use(requireAuth);
-
-/** Valideaza si normalizeaza o intrare de progres din request. */
-function sanitizeEntry(raw) {
-  const puzzleId = Number(raw?.puzzleId);
-  const difficulty = String(raw?.difficulty || "");
-
-  if (
-    !Number.isInteger(puzzleId) ||
-    puzzleId < 1 ||
-    !["easy", "medium", "hard", "expert", "master", "extreme"].includes(difficulty)
-  ) {
-    return null;
-  }
-
-  const values = Array.isArray(raw.values) ? raw.values.slice(0, 81) : [];
-  const notes = Array.isArray(raw.notes) ? raw.notes.slice(0, 81) : [];
-  const updatedAt = new Date(raw.updatedAt || Date.now());
-
-  return {
-    puzzleId,
-    difficulty,
-    values: values.map(Number),
-    notes: notes.map(String),
-    elapsed: Math.max(0, Number(raw.elapsed) || 0),
-    mistakes: Math.max(0, Number(raw.mistakes) || 0),
-    hintsUsed: Math.max(0, Number(raw.hintsUsed) || 0),
-    correct: Math.max(0, Number(raw.correct) || 0),
-    completed: Boolean(raw.completed),
-    updatedAt: isNaN(updatedAt.getTime()) ? new Date() : updatedAt,
-  };
-}
 
 /** GET /api/progress — tot progresul utilizatorului (pentru restaurare). */
 router.get("/", async (req, res, next) => {
   try {
     const docs = await Progress.find({ userId: req.userId })
       .lean()
-      .select("-_id puzzleId difficulty values notes elapsed mistakes hintsUsed correct completed updatedAt");
+      .select(PROGRESS_FIELDS);
 
     const user = await User.findById(req.userId).lean();
     const stats = user?.stats
@@ -82,17 +58,32 @@ router.get("/", async (req, res, next) => {
  */
 router.put("/sync", async (req, res, next) => {
   try {
-    const incoming = Array.isArray(req.body?.entries)
-      ? req.body.entries.map(sanitizeEntry).filter(Boolean)
-      : [];
-    const clientStats = req.body?.stats || null;
+    const rawEntries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+    if (rawEntries.length > MAX_ENTRIES_PER_SYNC) {
+      return res.status(413).json({ error: "Prea multe intrări într-o singură sincronizare." });
+    }
+
+    // Validare + normalizare: dificultatea vine din catalogul serverului,
+    // iar "completed" e acceptat doar daca grila e exact solutia.
+    const now = Date.now();
+    const byPuzzle = new Map();
+    for (const raw of rawEntries) {
+      const entry = sanitizeEntry(raw, now);
+      if (!entry) continue;
+      const previous = byPuzzle.get(entry.puzzleId);
+      if (!previous || entry.updatedAt > previous.updatedAt) byPuzzle.set(entry.puzzleId, entry);
+    }
+    const incoming = [...byPuzzle.values()];
+    const clientStats = req.body?.stats && typeof req.body.stats === "object" ? req.body.stats : null;
 
     // 1) O singura interogare: updatedAt-urile existente pentru puzzle-urile primite.
-    const ids = [...new Set(incoming.map((entry) => entry.puzzleId))];
-    const existing = await Progress.find(
-      { userId: req.userId, puzzleId: { $in: ids } },
-      { puzzleId: 1, updatedAt: 1 }
-    ).lean();
+    const ids = incoming.map((entry) => entry.puzzleId);
+    const existing = ids.length
+      ? await Progress.find(
+          { userId: req.userId, puzzleId: { $in: ids } },
+          { puzzleId: 1, updatedAt: 1 }
+        ).lean()
+      : [];
 
     const currentVersion = new Map(
       existing.map((doc) => [doc.puzzleId, doc.updatedAt?.getTime() ?? 0])
@@ -124,64 +115,40 @@ router.put("/sync", async (req, res, next) => {
       await Progress.bulkWrite(ops, { ordered: false }); // 1 round-trip catre DB
     }
 
-    // 3) Statistici: pastram valorile "mejloare" (max solved, min bestTimes,
-    //    max totalSeconds) — merge optimist si defensiv.
-    let mergedStats;
-    if (clientStats) {
-      const user = await User.findById(req.userId).lean();
-      const serverStats = user?.stats || {};
+    // 3) Statistici + seria zilnica, intr-un singur update.
+    //    - solved / bestTimes: DOAR din date verificate de server (clasamentul
+    //      "solved" si realizarile de viteza nu mai pot fi umflate din client);
+    //    - attempted / totalSeconds: informative, max(server, client).
+    const user = await User.findById(req.userId).lean();
+    const serverStats = user?.stats || {};
+    const verified = await computeVerifiedStats(req.userId, serverStats);
 
-      const bestTimes = { ...(clientStats.bestTimes || {}) };
-      const serverBest = serverStats.bestTimes || {};
-      for (const [level, seconds] of Object.entries(serverBest)) {
-        const current = bestTimes[level];
-        if (!current || seconds < current) bestTimes[level] = seconds;
-      }
+    const toCount = (value) => Math.min(1e9, Math.max(0, Math.floor(Number(value) || 0)));
+    const mergedStats = {
+      solved: verified.solved,
+      attempted: Math.max(
+        toCount(serverStats.attempted),
+        toCount(clientStats?.attempted),
+        verified.solved
+      ),
+      totalSeconds: Math.max(toCount(serverStats.totalSeconds), toCount(clientStats?.totalSeconds)),
+      bestTimes: verified.bestTimes,
+    };
 
-      mergedStats = {
-        solved: Math.max(Number(serverStats.solved) || 0, Number(clientStats.solved) || 0),
-        attempted: Math.max(
-          Number(serverStats.attempted) || 0,
-          Number(clientStats.attempted) || 0
-        ),
-        totalSeconds: Math.max(
-          Number(serverStats.totalSeconds) || 0,
-          Number(clientStats.totalSeconds) || 0
-        ),
-        bestTimes,
-      };
+    const update = { stats: mergedStats };
 
-      await User.updateOne(
-        { _id: req.userId },
-        { $set: { stats: mergedStats } }
-      );
-    } else {
-      const user = await User.findById(req.userId).lean();
-      mergedStats = user?.stats
-        ? { ...user.stats, bestTimes: user.stats.bestTimes ?? {} }
-        : { solved: 0, attempted: 0, totalSeconds: 0, bestTimes: {} };
+    // Seria zilnica: validata calendaristic (nu poate creste mai repede de
+    // o zi pe zi) si NICIODATA stearsa de un dispozitiv cu stare goala.
+    const daily = resolveDaily(req.body?.daily, user?.daily, {
+      createdAt: user?.createdAt,
+      now,
+    });
+    if (daily) {
+      update.daily = daily;
+      update.maxStreak = Math.max(Number(user?.maxStreak) || 0, daily.streak);
     }
 
-    // 3b) Seria zilnica: last-write-wins dupa data ultimei zile rezolvate.
-    //     Pastram si maxStreak pentru realizarile de consistenta.
-    const clientDaily = req.body?.daily || null;
-    if (
-      clientDaily &&
-      (typeof clientDaily.lastCompleted === "string" || clientDaily.lastCompleted === null)
-    ) {
-      const user = await User.findById(req.userId).lean();
-      const serverLast = user?.daily?.lastCompleted || null;
-      const clientLast = clientDaily.lastCompleted;
-      const clientStreak = Math.max(0, Math.floor(Number(clientDaily.streak) || 0));
-
-      if (!serverLast || !clientLast || clientLast >= serverLast) {
-        const maxStreak = Math.max(Number(user?.maxStreak) || 0, clientStreak);
-        await User.updateOne(
-          { _id: req.userId },
-          { $set: { daily: { lastCompleted: clientLast, streak: clientStreak }, maxStreak } }
-        );
-      }
-    }
+    await User.updateOne({ _id: req.userId }, { $set: update });
 
     // 4) Realizarile se evalueaza dupa ce progresul e scris (datele noi
     //    sunt vizibile pentru agregari). Clientul primeste profilul + noile
@@ -198,11 +165,16 @@ router.put("/sync", async (req, res, next) => {
     }
 
     // 5) Returnam totul combinat, ca clientul sa se alinieze la server.
-    const docs = await Progress.find({ userId: req.userId })
-      .lean()
-      .select("-_id puzzleId difficulty values notes elapsed mistakes hintsUsed correct completed updatedAt");
+    const docs = await Progress.find({ userId: req.userId }).lean().select(PROGRESS_FIELDS);
 
-    res.json({ progress: docs, stats: mergedStats, written: toWrite.length, profile, newlyUnlocked });
+    res.json({
+      progress: docs,
+      stats: mergedStats,
+      daily: update.daily ?? user?.daily ?? null,
+      written: toWrite.length,
+      profile,
+      newlyUnlocked,
+    });
   } catch (error) {
     next(error);
   }
@@ -221,6 +193,7 @@ router.post("/reset", async (req, res, next) => {
           xpTotal: 0,
           achievements: {},
           maxStreak: 0,
+          daily: { lastCompleted: null, streak: 0 },
         },
       }
     );

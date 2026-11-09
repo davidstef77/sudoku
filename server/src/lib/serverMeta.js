@@ -51,7 +51,7 @@ function achievementSyntheticId(achievementId) {
  * Acorda XP pentru puzzle-urile NOU completate dintr-un sync.
  * @param {ObjectId|string} userId
  * @param {Array<{puzzleId:Number, difficulty:string, elapsed:Number, mistakes:Number, hintsUsed:Number, completed:Boolean}>} entries
- * @returns {Promise<{ xpGained: Number, events: Number }>}
+ * @returns {Promise<{ xpTotal: Number, events: Number }>}
  */
 export async function grantXpForNewCompletions(userId, entries) {
   const completed = (entries || []).filter(
@@ -62,7 +62,7 @@ export async function grantXpForNewCompletions(userId, entries) {
       XP_PER_DIFFICULTY[entry.difficulty]
   );
 
-  if (completed.length === 0) return { xpGained: 0, events: 0 };
+  if (completed.length === 0) return { xpTotal: null, events: 0 };
 
   // Ce era deja completat pe server (oriceentry vechi blocand re-recompensa).
   const ids = [...new Set(completed.map((entry) => entry.puzzleId))];
@@ -73,7 +73,7 @@ export async function grantXpForNewCompletions(userId, entries) {
   const alreadyDone = new Set(existing.map((doc) => doc.puzzleId));
 
   const fresh = completed.filter((entry) => !alreadyDone.has(entry.puzzleId));
-  if (fresh.length === 0) return { xpGained: 0, events: 0 };
+  if (fresh.length === 0) return { xpTotal: null, events: 0 };
 
   // evenimente XP — ordered:false + unique index => dublurile sunt ignorate.
   const now = new Date();
@@ -116,26 +116,32 @@ export async function grantXpForNewCompletions(userId, entries) {
 
   await User.updateOne({ _id: userId }, { $set: { xpTotal } });
 
-  const events = fresh.length;
-  return { xpGained: xpTotal, events };
+  return { xpTotal, events: fresh.length };
 }
 
 /**
  * Contextul de evaluare al realizarilor, construit exclusiv din date server.
  */
 export async function buildAchievementContext(userId) {
-  const [byDifficulty, perfectCount, user] = await Promise.all([
+  const [progressByDifficulty, xpByDifficulty, perfectCount, user] = await Promise.all([
     Progress.aggregate([
       { $match: { userId: toId(userId), completed: true } },
+      { $group: { _id: "$difficulty", count: { $sum: 1 } } },
+    ]),
+    // Evenimentele XP sunt permanente (un puzzle rejucat ramane "rezolvat"),
+    // spre deosebire de Progress, care poate fi suprascris de o noua incercare.
+    XpEvent.aggregate([
+      { $match: { userId: toId(userId), synthetic: { $ne: true } } },
       { $group: { _id: "$difficulty", count: { $sum: 1 } } },
     ]),
     XpEvent.countDocuments({ userId: toId(userId), perfect: true, amount: { $gt: 0 } }),
     User.findById(userId).lean(),
   ]);
 
-  const solvedByDifficulty = Object.fromEntries(
-    byDifficulty.map((row) => [row._id, row.count])
-  );
+  const solvedByDifficulty = {};
+  for (const row of [...progressByDifficulty, ...xpByDifficulty]) {
+    solvedByDifficulty[row._id] = Math.max(solvedByDifficulty[row._id] ?? 0, row.count);
+  }
 
   const bestTimes = {};
   for (const [key, value] of Object.entries(user?.stats?.bestTimes ?? {})) {
@@ -150,20 +156,52 @@ export async function buildAchievementContext(userId) {
     bestTimes,
     streak,
     perfectSolves: perfectCount,
+    user,
   };
+}
+
+/**
+ * Statisticile care conteaza pentru clasament / realizari, derivate din
+ * datele serverului (nu din ce raporteaza clientul):
+ *   - solved: puzzle-uri unice rezolvate (verificate fata de solutie);
+ *   - bestTimes: cel mai bun timp PLAUZIBIL per nivel (doar evenimente cu XP).
+ * Timpii mai vechi deja salvati pe server raman, daca sunt mai buni.
+ */
+export async function computeVerifiedStats(userId, serverStats = {}) {
+  const [xpSolved, progressSolved, timeRows] = await Promise.all([
+    XpEvent.countDocuments({ userId: toId(userId), synthetic: { $ne: true } }),
+    Progress.countDocuments({ userId: toId(userId), completed: true }),
+    XpEvent.aggregate([
+      { $match: { userId: toId(userId), synthetic: { $ne: true }, amount: { $gt: 0 } } },
+      { $group: { _id: "$difficulty", best: { $min: "$seconds" } } },
+    ]),
+  ]);
+
+  const bestTimes = {};
+  for (const [level, seconds] of Object.entries(serverStats.bestTimes ?? {})) {
+    const value = Number(seconds);
+    if (value > 0) bestTimes[level] = value;
+  }
+  for (const row of timeRows) {
+    if (row.best > 0 && (!bestTimes[row._id] || row.best < bestTimes[row._id])) {
+      bestTimes[row._id] = row.best;
+    }
+  }
+
+  return { solved: Math.max(xpSolved, progressSolved), bestTimes };
 }
 
 /**
  * Evalueaza realizarile pentru un utilizator, persista noile deblocari si
  * acorda XP-ul de realizare (eveniment sintetic, puzzleId negativ, ca sa
  * nu interfereze cu regula anti-dublu a puzzle-urilor).
- * @returns {Promise<{ newlyUnlocked: string[], unlocked: string[] }>}
+ * @returns {Promise<{ newlyUnlocked: string[], unlocked: string[], context: object }>}
  */
 export async function evaluateAndPersistAchievements(userId) {
   const context = await buildAchievementContext(userId);
   const satisfied = new Set(evaluateAchievements(context));
 
-  const user = await User.findById(userId).lean();
+  const { user } = context;
   const unlocked = new Set(Object.keys(user?.achievements ?? {}));
 
   const newly = [...satisfied].filter((id) => !unlocked.has(id));
@@ -210,12 +248,14 @@ export async function evaluateAndPersistAchievements(userId) {
   }
 
   // Seria maxima, pentru realizarile de consistenta.
+  // (Inainte: `streak > Number(maxStreak) || 0` — pentru documente vechi fara
+  //  maxStreak, comparatia cu NaN era mereu falsa si seria nu se salva.)
   const streak = Number(user?.daily?.streak) || 0;
-  if (streak > Number(user?.maxStreak) || 0) {
-    await User.updateOne({ _id: userId }, { $set: { maxStreak: streak } });
+  if (streak > (Number(user?.maxStreak) || 0)) {
+    await User.updateOne({ _id: userId }, { $max: { maxStreak: streak } });
   }
 
-  return { newlyUnlocked: newly, unlocked: [...unlocked] };
+  return { newlyUnlocked: newly, unlocked: [...unlocked], context };
 }
 
 /** Profilul gamification trimis clientului. */

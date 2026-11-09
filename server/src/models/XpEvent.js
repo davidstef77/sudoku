@@ -31,5 +31,8 @@ const xpEventSchema = new mongoose.Schema(
 // Regula anti-dublu-recompensa: un singur eveniment per puzzle per utilizator.
 xpEventSchema.index({ userId: 1, puzzleId: 1 }, { unique: true });
 
+// Clasamentele pe dificultate (filtru difficulty + interval de timp).
+xpEventSchema.index({ difficulty: 1, at: -1 });
+
 export const XpEvent = mongoose.model("XpEvent", xpEventSchema);
 export default XpEvent;

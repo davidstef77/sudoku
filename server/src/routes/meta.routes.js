@@ -17,8 +17,15 @@ import {
   ACHIEVEMENTS,
   achievementProgress,
 } from "../lib/achievements.js";
-import { buildAchievementContext, evaluateAndPersistAchievements, getProfile } from "../lib/serverMeta.js";
+import { evaluateAndPersistAchievements, getProfile } from "../lib/serverMeta.js";
 import { levelForXp } from "../lib/xp.js";
+import {
+  DIFFICULTIES,
+  dayKey,
+  effectiveStreak,
+  publicName,
+  streakCutoffDay,
+} from "../lib/validation.js";
 
 const router = Router();
 
@@ -28,10 +35,12 @@ const router = Router();
     try {
       // Evaluarea server-side deblocheaza si persista realizarile noi,
       // returnandu-le separat pentru notificarile animate din UI.
-      const { newlyUnlocked, unlocked } = await evaluateAndPersistAchievements(req.userId);
+      // Contextul vine din aceeasi evaluare (inainte era reconstruit, 4 interogari in plus).
+      const { newlyUnlocked, unlocked, context } = await evaluateAndPersistAchievements(
+        req.userId
+      );
       const unlockedSet = new Set(unlocked);
 
-      const context = await buildAchievementContext(req.userId);
       const profile = await getProfile(req.userId);
 
       const achievements = ACHIEVEMENTS.map((definition) => {
@@ -75,7 +84,6 @@ const router = Router();
         : "global";
       const sort = String(req.query.sort || "xp");
 
-      const DIFFICULTIES = ["easy", "medium", "hard", "expert", "master", "extreme"];
       const difficultySort = DIFFICULTIES.includes(sort) ? sort : null;
 
       // Intervalul de timp pentru scopuri temporale.
@@ -89,50 +97,77 @@ const router = Router();
       // ---------- construirea listei ----------
       let rows; // [{ userId, value }]
       let metric; // descrierea metricii sortate
+      let countAbove; // (valoare) => numarul de jucatori cu valoare mai mare
+
+      // O serie e "activa" doar daca ultima zi rezolvata e recenta; altfel
+      // documentul retine o serie rupta, care nu trebuie sa apara in top.
+      const activeSince = dayKey(streakCutoffDay());
 
       if (scope === "global" && !difficultySort) {
         if (sort === "solved") {
           metric = "solved";
           rows = await User.aggregate([
+            { $match: { "stats.solved": { $gt: 0 } } },
             { $project: { value: "$stats.solved" } },
-            { $match: { value: { $gt: 0 } } },
             { $sort: { value: -1 } },
             { $limit: 500 },
           ]);
+          countAbove = (value) => User.countDocuments({ "stats.solved": { $gt: value } });
         } else if (sort === "streak") {
           metric = "streak";
+          const filter = {
+            "daily.lastCompleted": { $gte: activeSince },
+            "daily.streak": { $gt: 0 },
+          };
           rows = await User.aggregate([
+            { $match: filter },
             { $project: { value: "$daily.streak" } },
-            { $match: { value: { $gt: 0 } } },
             { $sort: { value: -1 } },
             { $limit: 500 },
           ]);
+          countAbove = (value) =>
+            User.countDocuments({ ...filter, "daily.streak": { $gt: value } });
         } else {
           metric = "xp";
           rows = await User.aggregate([
+            { $match: { xpTotal: { $gt: 0 } } },
             { $project: { value: "$xpTotal" } },
-            { $match: { value: { $gt: 0 } } },
             { $sort: { value: -1 } },
             { $limit: 500 },
           ]);
+          countAbove = (value) => User.countDocuments({ xpTotal: { $gt: value } });
         }
       } else {
         // Saptamanal / lunar / sortare pe dificultate: aggregare pe XpEvent.
         const match = {};
         if (since) match.at = { $gte: since };
         if (difficultySort) match.difficulty = difficultySort;
-        if (scope === "global" && difficultySort) match.synthetic = { $ne: true };
+        // Evenimentele sintetice (XP de realizare) au difficulty "easy" doar
+        // formal — excluse din ORICE clasament pe dificultate (inainte erau
+        // excluse doar la "global", deci umflau clasamentul saptamanal "easy").
+        if (difficultySort) match.synthetic = { $ne: true };
 
         metric = difficultySort ? `xp-${difficultySort}` : "xp";
 
-        rows = await XpEvent.aggregate([
+        const grouped = [
           { $match: match },
           { $group: { _id: "$userId", value: { $sum: "$amount" } } },
+        ];
+        rows = await XpEvent.aggregate([
+          ...grouped,
           { $match: { value: { $gt: 0 } } },
           { $sort: { value: -1 } },
           { $limit: 500 },
         ]);
         rows = rows.map((row) => ({ userId: row._id, value: row.value }));
+        countAbove = async (value) => {
+          const [result] = await XpEvent.aggregate([
+            ...grouped,
+            { $match: { value: { $gt: value } } },
+            { $count: "n" },
+          ]);
+          return result?.n ?? 0;
+        };
       }
 
       // ---------- detailii utilizatori + ranguri ----------
@@ -140,24 +175,23 @@ const router = Router();
       const idList = top.map((row) => row.userId).filter(Boolean);
       const users = await User.find({ _id: { $in: idList } })
         .lean()
-        .select("displayName email stats daily xpTotal");
+        .select("displayName stats daily xpTotal");
 
       const byId = new Map(users.map((user) => [user._id.toString(), user]));
 
       const entries = top.map((row, index) => {
         const user = byId.get(String(row.userId)) || {};
-        const emailName = String(user.email || "").split("@")[0];
-        const name = user.displayName || emailName || "Anonim";
         const xpTotal = Number(user.xpTotal) || 0;
 
         return {
           rank: index + 1,
           userId: String(row.userId),
-          name,
+          // Emailul (nici macar partea dinainte de @) nu mai e expus public.
+          name: publicName(user, row.userId),
           level: levelForXp(xpTotal),
           xpTotal,
           solved: Number(user.stats?.solved) || 0,
-          streak: Number(user.daily?.streak) || 0,
+          streak: effectiveStreak(user.daily),
           value: row.value,
           metric,
         };
@@ -184,12 +218,15 @@ const router = Router();
               metric === "solved"
                 ? Number(myUser.stats?.solved) || 0
                 : metric === "streak"
-                ? Number(myUser.daily?.streak) || 0
+                ? effectiveStreak(myUser.daily)
                 : xpTotal;
           } else {
             const match = { userId: new mongoose.Types.ObjectId(myId) };
             if (since) match.at = { $gte: since };
-            if (difficultySort) match.difficulty = difficultySort;
+            if (difficultySort) {
+              match.difficulty = difficultySort;
+              match.synthetic = { $ne: true };
+            }
             const [agg] = await XpEvent.aggregate([
               { $match: match },
               { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -197,18 +234,20 @@ const router = Router();
             myValue = agg?.total ?? 0;
           }
 
+          // In afara top 500: rangul real se numara in baza (inainte era
+          // plafonat artificial la 501 indiferent de pozitie).
           if (myValue > 0) {
-            myRank = rows.filter((row) => row.value > myValue).length + 1;
+            myRank = (await countAbove(myValue)) + 1;
           }
         }
 
         me = {
           rank: myValue > 0 ? myRank : null,
-          name: myUser.displayName || String(myUser.email || "").split("@")[0] || "Anonim",
+          name: publicName(myUser, myId),
           level: levelForXp(xpTotal),
           xpTotal,
           solved: Number(myUser.stats?.solved) || 0,
-          streak: Number(myUser.daily?.streak) || 0,
+          streak: effectiveStreak(myUser.daily),
           value: myValue ?? 0,
           metric,
         };

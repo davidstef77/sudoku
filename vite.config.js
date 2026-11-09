@@ -20,6 +20,6 @@ export default defineConfig({
   // Configurare Vitest (npm test)
   test: {
     environment: "node",
-    include: ["src/**/*.test.js"],
+    include: ["src/**/*.test.js", "server/test/**/*.test.js"],
   },
 });

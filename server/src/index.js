@@ -8,6 +8,7 @@ import { env } from "./config/env.js";
 import { connectDatabase, disconnectDatabase } from "./db/connect.js";
 
 async function main() {
+  // Serverul clasic porneste DOAR cu baza conectata (fail fast la configurare gresita).
   await connectDatabase();
 
   const app = createApp();

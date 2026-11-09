@@ -6,6 +6,7 @@
  */
 
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { env } from "../config/env.js";
 import { User } from "../models/User.js";
 
@@ -19,8 +20,10 @@ export function requireAuth(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, env.jwtSecret);
-    req.userId = payload.sub;
+    // Algoritmul fixat explicit — nu acceptam tokenuri semnate altfel.
+    const payload = jwt.verify(token, env.jwtSecret, { algorithms: ["HS256"] });
+    if (!mongoose.isValidObjectId(payload?.sub)) throw new Error("sub invalid");
+    req.userId = String(payload.sub);
     next();
   } catch {
     return res.status(401).json({ error: "Token invalid sau expirat." });
@@ -29,10 +32,14 @@ export function requireAuth(req, res, next) {
 
 /** Incarca si documentul utilizatorului (pentru rute care il au nevoie). */
 export async function requireUser(req, res, next) {
-  const user = await User.findById(req.userId).lean();
-  if (!user) {
-    return res.status(401).json({ error: "Utilizatorul nu există." });
+  try {
+    const user = await User.findById(req.userId).lean();
+    if (!user) {
+      return res.status(401).json({ error: "Utilizatorul nu există." });
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
   }
-  req.user = user;
-  next();
 }

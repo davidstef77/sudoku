@@ -65,5 +65,11 @@ const userSchema = new mongoose.Schema(
 
 userSchema.index({ createdAt: -1 }); // pentru statistici admin ulterioare
 
+// Clasamentul global sorteaza dupa aceste campuri — fara index ar fi
+// un COLLSCAN + sort in memorie pe toata colectia la fiecare cerere.
+userSchema.index({ xpTotal: -1 });
+userSchema.index({ "stats.solved": -1 });
+userSchema.index({ "daily.lastCompleted": 1, "daily.streak": -1 });
+
 export const User = mongoose.model("User", userSchema);
 export default User;

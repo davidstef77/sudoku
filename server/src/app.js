@@ -19,7 +19,8 @@ import { env } from "./config/env.js";
 import authRoutes from "./routes/auth.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import metaRoutes from "./routes/meta.routes.js";
-import { notFound, errorHandler } from "./middleware/errors.js";
+import { notFound, errorHandler, HttpError } from "./middleware/errors.js";
+import { ensureDatabase, databaseState } from "./db/connect.js";
 
 export function createApp() {
   const app = express();
@@ -46,9 +47,9 @@ export function createApp() {
         if (!origin || allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
-        callback(new Error("Origine CORS nepermisă"));
+        callback(new HttpError(403, "Origine CORS nepermisă."));
       },
-      methods: ["GET", "POST", "PUT", "DELETE"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
       allowedHeaders: ["Content-Type", "Authorization"],
       maxAge: 86400, // cache preflight 24h — mai putine OPTIONS
     })
@@ -75,9 +76,18 @@ export function createApp() {
   );
 
   // ---------- rute ----------
+  // Health check: nu atinge baza, dar raporteaza starea conexiunii.
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, uptime: process.uptime() });
+    const db = databaseState();
+    res.status(db === "connected" ? 200 : 503).json({
+      ok: db === "connected",
+      db,
+      uptime: process.uptime(),
+    });
   });
+
+  // Toate rutele de mai jos au nevoie de MongoDB: 503 rapid daca nu e disponibil.
+  app.use("/api", ensureDatabase);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/progress", progressRoutes);
