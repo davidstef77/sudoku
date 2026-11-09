@@ -4,6 +4,9 @@
  * jocul propriu-zis (GameScreen), provocarea zilei si jocul bonus Turing Test.
  * Progresul si statisticile se salveaza local (offline-first) si, daca
  * utilizatorul e autentificat, se sincronizeaza in fundal cu backend-ul.
+ *
+ * Navigarea foloseste rute pe hash (src/lib/router.js): fiecare ecran are
+ * propriul URL, butoanele Back/Forward functioneaza si se pot da linkuri directe.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +17,7 @@ import GameScreen from "./components/GameScreen.jsx";
 import TuringTestGame from "./components/TuringTestGame.jsx";
 import SettingsPanel from "./components/SettingsPanel.jsx";
 import AuthModal from "./components/AuthModal.jsx";
+import AccountModal from "./components/AccountModal.jsx";
 import Nav from "./components/Nav.jsx";
 import AchievementsPage from "./components/AchievementsPage.jsx";
 import LeaderboardPage from "./components/LeaderboardPage.jsx";
@@ -24,6 +28,7 @@ import { getDailyPuzzle, loadDailyState, recordDailySolved } from "./lib/daily.j
 import { loadTheme } from "./lib/theme.js";
 import { setSoundMuted } from "./lib/sound.js";
 import { levelForXp } from "./lib/xp.js";
+import { ROUTES, useRouter } from "./lib/router.js";
 import { loadSettings, saveSetting } from "./storage/settings.js";
 import {
   awardSolve,
@@ -42,11 +47,8 @@ import {
 } from "./storage/progress.js";
 
 export default function App() {
-  // "home" = nivelurile, "level" = lista unui nivel, "sudoku" = jocul,
-  // "daily" = provocarea zilei, "turing" = bonus.
-  const [view, setView] = useState("home");
-  const [activeId, setActiveId] = useState(null);
-  const [activeLevel, setActiveLevel] = useState(null);
+  // Ecranul curent vine din URL (#/...), nu dintr-o stare interna.
+  const { route, navigate, goBack } = useRouter();
   const [progress, setProgress] = useState({});
   const [stats, setStats] = useState({ solved: 0, totalSeconds: 0, bestTimes: {} });
   const [lastPlayed, setLast] = useState(null);
@@ -185,35 +187,76 @@ export default function App() {
     }
   }, []);
 
-  // ---------- navigare ----------
+  // ---------- navigare (rute) ----------
   const activePuzzle = useMemo(
-    () => puzzles.find((puzzle) => puzzle.id === activeId) ?? null,
-    [activeId]
+    () =>
+      route.name === "puzzle"
+        ? puzzles.find((puzzle) => puzzle.id === route.params.id) ?? null
+        : null,
+    [route]
+  );
+
+  const activeLevel =
+    route.name === "level" && DIFFICULTIES[route.params.level] ? route.params.level : null;
+
+  // Rute invalide (necunoscute, nivel sau puzzle inexistent) -> acasa,
+  // inlocuind intrarea din istoric (Back nu duce iar pe ruta stricata).
+  const invalidRoute =
+    route.name === "notFound" ||
+    (route.name === "level" && !activeLevel) ||
+    (route.name === "puzzle" && !activePuzzle);
+
+  useEffect(() => {
+    if (invalidRoute) navigate(ROUTES.home(), { replace: true });
+  }, [invalidRoute, navigate]);
+
+  // Puzzle deschis (din aplicatie SAU prin link direct) = „ultimul jucat".
+  useEffect(() => {
+    if (!activePuzzle) return;
+    setLast(activePuzzle.id);
+    setLastPlayed(activePuzzle.id);
+  }, [activePuzzle]);
+
+  // La iesirea dintr-un joc (orice ruta in afara de joc) reincarcam progresul,
+  // inclusiv cand utilizatorul foloseste butonul Back al browserului.
+  const inGame = route.name === "puzzle" || route.name === "daily";
+  useEffect(() => {
+    if (!ready || inGame) return;
+    loadAllProgress().then(setProgress);
+  }, [ready, inGame]);
+
+  // Titlul tab-ului reflecta ecranul curent.
+  useEffect(() => {
+    const titles = {
+      level: activeLevel && `${DIFFICULTIES[activeLevel].label}`,
+      puzzle: activePuzzle && `Puzzle #${activePuzzle.id}`,
+      daily: "Provocarea zilei",
+      achievements: "Realizări",
+      leaderboard: "Clasament",
+      turing: "Turing Test",
+    };
+    const title = titles[route.name];
+    document.title = title ? `${title} · Sudoku 1000` : "Sudoku 1000";
+  }, [route.name, activeLevel, activePuzzle]);
+
+  /** Navigatia din bara de sus: "home" | "achievements" | "leaderboard". */
+  const navigateTo = useCallback(
+    (name) => navigate((ROUTES[name] ?? ROUTES.home)()),
+    [navigate]
   );
 
   /** Deschide lista de puzzle-uri a unui nivel. */
-  const openLevel = useCallback((level) => {
-    setActiveLevel(level);
-    setView("level");
-  }, []);
+  const openLevel = useCallback((level) => navigate(ROUTES.level(level)), [navigate]);
 
-  /** Deschide un puzzle si il retine ca „ultimul jucat". */
-  const openPuzzle = useCallback(async (id) => {
-    const puzzle = puzzles.find((entry) => entry.id === id);
-    setActiveId(id);
-    setActiveLevel(puzzle?.difficulty ?? null);
-    setView("sudoku");
-    setLast(id);
-    await setLastPlayed(id);
-  }, []);
+  /** Deschide un puzzle (efectul de mai sus il retine ca „ultimul jucat"). */
+  const openPuzzle = useCallback((id) => navigate(ROUTES.puzzle(id)), [navigate]);
 
-  /** Reincarca progresul cand ne intoarcem la lista nivelului. */
-  const exitGame = useCallback(async () => {
-    setActiveId(null);
-    setView(activeLevel ? "level" : "home");
-    const all = await loadAllProgress();
-    setProgress(all);
-  }, [activeLevel]);
+  /** Din joc inapoi la lista nivelului puzzle-ului. */
+  const exitGame = useCallback(() => {
+    goBack(activePuzzle ? ROUTES.level(activePuzzle.difficulty) : ROUTES.home());
+  }, [goBack, activePuzzle]);
+
+  const goHome = useCallback(() => goBack(ROUTES.home()), [goBack]);
 
   // ---------- gamification: notificari ----------
   const pushToast = useCallback((toast) => {
@@ -295,12 +338,10 @@ export default function App() {
     setProgress({});
     setStats({ solved: 0, totalSeconds: 0, bestTimes: {} });
     setLast(null);
-    setActiveId(null);
-    setActiveLevel(null);
     setProfile(await loadProfile());
     setLocalContext(await buildLocalContext(await loadProfile()));
-    setView("home");
-  }, []);
+    navigate(ROUTES.home(), { replace: true });
+  }, [navigate]);
 
   // ---------- datele provocarii zilei ----------
   const dailyInfo = useMemo(() => {
@@ -314,7 +355,7 @@ export default function App() {
   }, [puzzles, dailyState]);
 
   // ---------- randare ----------
-  if (!ready) {
+  if (!ready || invalidRoute) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent/30 border-t-accent" />
@@ -323,24 +364,71 @@ export default function App() {
     );
   }
 
-  if (view === "turing") {
-    return <TuringTestGame onExit={() => setView("home")} />;
+  if (route.name === "turing") {
+    return <TuringTestGame onExit={goHome} />;
   }
 
+  // Modalele (setari, cont) — comune paginilor cu bara de navigare.
+  const modals = (
+    <>
+      <AchievementToasts toasts={toasts} onDismiss={dismissToast} />
+
+      {showSettings && (
+        <SettingsPanel
+          settings={settings}
+          onChange={handleSettingChange}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {showAuth && !user && (
+        <AuthModal
+          onClose={() => setShowAuth(false)}
+          onAuthenticated={async (authenticatedUser) => {
+            setUser(authenticatedUser);
+            setShowAuth(false);
+            await syncNow();
+          }}
+        />
+      )}
+
+      {showAuth && user && (
+        <AccountModal
+          user={user}
+          onClose={() => setShowAuth(false)}
+          onUpdated={setUser}
+          onLoggedOut={() => {
+            api.logout();
+            setUser(null);
+            setShowAuth(false);
+          }}
+          onDeleted={() => {
+            setUser(null);
+            setShowAuth(false);
+          }}
+        />
+      )}
+    </>
+  );
+
+  const nav = (active) => (
+    <Nav
+      active={active}
+      profile={profile}
+      user={user}
+      syncing={syncing}
+      onNavigate={navigateTo}
+      onOpenSettings={() => setShowSettings(true)}
+      onOpenAuth={() => setShowAuth(true)}
+    />
+  );
+
   // ---------- pagini de gamification (cu navigatia partajata) ----------
-  if (view === "achievements" || view === "leaderboard") {
+  if (route.name === "achievements" || route.name === "leaderboard") {
     return (
       <>
-        <Nav
-          active={view}
-          profile={profile}
-          user={user}
-          syncing={syncing}
-          onNavigate={setView}
-          onOpenSettings={() => setShowSettings(true)}
-          onOpenAuth={() => setShowAuth(true)}
-        />
-        {view === "achievements" ? (
+        {nav(route.name)}
+        {route.name === "achievements" ? (
           <AchievementsPage
             profile={profile}
             localContext={localContext}
@@ -350,46 +438,24 @@ export default function App() {
         ) : (
           <LeaderboardPage user={user} onOpenAuth={() => setShowAuth(true)} />
         )}
-
-        <AchievementToasts toasts={toasts} onDismiss={dismissToast} />
-
-        {showSettings && (
-          <SettingsPanel
-            settings={settings}
-            onChange={handleSettingChange}
-            onClose={() => setShowSettings(false)}
-          />
-        )}
-        {showAuth && (
-          <AuthModal
-            onClose={() => setShowAuth(false)}
-            onAuthenticated={async (authenticatedUser) => {
-              setUser(authenticatedUser);
-              setShowAuth(false);
-              await syncNow();
-            }}
-          />
-        )}
+        {modals}
       </>
     );
   }
 
-  if (view === "level" && activeLevel) {
+  if (route.name === "level" && activeLevel) {
     return (
       <LevelScreen
         level={activeLevel}
         puzzles={puzzles}
         progress={progress}
-        onBack={() => {
-          setActiveLevel(null);
-          setView("home");
-        }}
+        onBack={goHome}
         onOpen={openPuzzle}
       />
     );
   }
 
-  if (view === "sudoku" && activePuzzle) {
+  if (route.name === "puzzle" && activePuzzle) {
     return (
       <GameScreen
         key={activePuzzle.id}
@@ -401,14 +467,14 @@ export default function App() {
     );
   }
 
-  if (view === "daily" && dailyInfo.puzzle) {
+  if (route.name === "daily" && dailyInfo.puzzle) {
     return (
       <GameScreen
         key={`daily-${dailyInfo.date}`}
         puzzle={dailyInfo.puzzle}
         mistakesLimit={settings.mistakesLimit}
         isDaily
-        onExit={() => setView("home")}
+        onExit={goHome}
         onSolved={handleDailySolved}
       />
     );
@@ -416,15 +482,7 @@ export default function App() {
 
   return (
     <>
-      <Nav
-        active="home"
-        profile={profile}
-        user={user}
-        syncing={syncing}
-        onNavigate={setView}
-        onOpenSettings={() => setShowSettings(true)}
-        onOpenAuth={() => setShowAuth(true)}
-      />
+      {nav("home")}
 
       <Home
         puzzles={puzzles}
@@ -435,31 +493,12 @@ export default function App() {
         profile={profile}
         onOpenLevel={openLevel}
         onContinue={() => lastPlayed && openPuzzle(lastPlayed)}
-        onOpenTuring={() => setView("turing")}
-        onOpenDaily={() => setView("daily")}
+        onOpenTuring={() => navigate(ROUTES.turing())}
+        onOpenDaily={() => navigate(ROUTES.daily())}
         onReset={handleReset}
       />
 
-      <AchievementToasts toasts={toasts} onDismiss={dismissToast} />
-
-      {showSettings && (
-        <SettingsPanel
-          settings={settings}
-          onChange={handleSettingChange}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      {showAuth && (
-        <AuthModal
-          onClose={() => setShowAuth(false)}
-          onAuthenticated={async (authenticatedUser) => {
-            setUser(authenticatedUser);
-            setShowAuth(false);
-            await syncNow();
-          }}
-        />
-      )}
+      {modals}
     </>
   );
 }
